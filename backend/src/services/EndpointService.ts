@@ -1,54 +1,40 @@
 import HttpStatusCodes from '@src/common/constants/HttpStatusCodes';
 import { RouteError } from '@src/common/utils/route-errors';
-import { IUser } from '@src/models/User.model';
-import UserRepo from '@src/repos/UserRepo';
+import { IEndpoint, EndpointInput } from '@src/schemas/endpointSchema';
+import EndpointRepo from '@src/repos/EndpointRepo';
 
 /******************************************************************************
                                 Constants
 ******************************************************************************/
 
 const Errors = {
-  USER_NOT_FOUND: 'User not found',
+  NOT_FOUND: 'Endpoint not found',
 } as const;
 
 /******************************************************************************
                                 Functions
 ******************************************************************************/
 
-/**
- * Get all users.
- */
-function getAll(): Promise<IUser[]> {
-  return UserRepo.getAll();
+function getAll(): IEndpoint[] {
+  return EndpointRepo.getAll();
 }
 
-/**
- * Add one user.
- */
-function addOne(user: IUser): Promise<void> {
-  return UserRepo.add(user);
+function addOne(data: EndpointInput): IEndpoint {
+  return EndpointRepo.add(data);
 }
 
-/**
- * Update one user.
- */
-async function updateOne(user: IUser): Promise<void> {
-  const persists = await UserRepo.persists(user.id);
-  if (!persists) {
-    throw new RouteError(HttpStatusCodes.NOT_FOUND, Errors.USER_NOT_FOUND);
+function updateOne(id: number, data: EndpointInput): IEndpoint {
+  if (!EndpointRepo.persists(id)) {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, Errors.NOT_FOUND);
   }
-  return UserRepo.update(user);
+  return EndpointRepo.update(id, data);
 }
 
-/**
- * Delete a user by their id.
- */
-async function deleteOne(id: number): Promise<void> {
-  const persists = await UserRepo.persists(id);
-  if (!persists) {
-    throw new RouteError(HttpStatusCodes.NOT_FOUND, Errors.USER_NOT_FOUND);
+function deleteOne(id: number): void {
+  if (!EndpointRepo.persists(id)) {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, Errors.NOT_FOUND);
   }
-  return UserRepo.delete(id);
+  EndpointRepo.delete(id);
 }
 
 /******************************************************************************

@@ -1,4 +1,4 @@
-import type { SimulatorEndpoint } from '../types/endpoint';
+import type { SimulatorEndpoint, TransmitResult } from '../types/endpoint';
 
 const BASE = '/api/endpoints';
 
@@ -33,5 +33,9 @@ export const endpointsApi = {
 
   remove(id: number): Promise<void> {
     return fetch(`${BASE}/${id}`, { method: 'DELETE' }).then(handleResponse<void>);
+  },
+
+  send(id: number): Promise<TransmitResult> {
+    return fetch(`${BASE}/${id}/send`, { method: 'POST' }).then(handleResponse<TransmitResult>);
   },
 };

@@ -1,6 +1,13 @@
 export type Protocol = 'HTTP' | 'TCP' | 'UDP';
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
+export interface TransmitResult {
+  success: boolean;
+  responseBody?: string;
+  error?: string;
+  latencyMs: number;
+}
+
 export interface SimulatorEndpoint {
   id?: number;
   name: string;
