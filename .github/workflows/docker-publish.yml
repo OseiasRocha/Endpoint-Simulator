@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: endpoint-simulator
+  IMAGE_NAME: endpointlab
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:

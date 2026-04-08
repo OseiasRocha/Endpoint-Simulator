@@ -1,6 +1,6 @@
-# Endpoint Simulator
+# EndpointLab
 
-Endpoint Simulator is a full-stack app for creating and testing simulated endpoints (HTTP, TCP, UDP).
+EndpointLab is a full-stack app for creating and testing simulated endpoints (HTTP, TCP, UDP).
 
 It includes:
 - A React UI to create, edit, delete, and test endpoints

@@ -99,7 +99,7 @@ export default function HomePage() {
       <Box sx={{ bgcolor: '#173647', color: '#fff', px: { xs: 2, md: 4 }, py: 3 }}>
         <Box sx={{ maxWidth: 1100, mx: 'auto' }}>
           <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: '-0.01em' }}>
-            Endpoint Simulator
+            EndpointLab
           </Typography>
           <Typography variant="body2" sx={{ opacity: 0.75, mt: 0.5 }}>
             Manage simulated endpoints with HTTP, TCP and UDP protocols. Define request and response messages per endpoint.
