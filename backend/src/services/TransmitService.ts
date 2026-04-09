@@ -2,7 +2,7 @@ import dgram from 'dgram';
 import http from 'http';
 import net from 'net';
 
-import type { IEndpoint, TransmitResult } from '@shared';
+import type { IEndpoint, TransmitResult } from '../../../shared/src';
 
 /******************************************************************************
                                 Constants
@@ -140,6 +140,7 @@ function transmit(endpoint: IEndpoint): Promise<TransmitResult> {
     case 'HTTP': return transmitHttp(endpoint);
     case 'TCP':  return transmitTcp(endpoint);
     case 'UDP':  return transmitUdp(endpoint);
+    default:     throw new Error(`Unsupported protocol: ${(endpoint as IEndpoint).protocol}`);
   }
 }
 

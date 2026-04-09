@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import Paths from '@src/common/constants/Paths';
+import Paths from '../common/constants/Paths';
 
 import EndpointRoutes from './EndpointRoutes';
 import TransmitRoutes from './TransmitRoutes';

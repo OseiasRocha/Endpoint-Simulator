@@ -12,17 +12,13 @@
     "dev": "concurrently \"npm run dev:watch\" \"npm run sync\"",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "start": "DOTENV_CONFIG_PATH=./config/.env.production node -r dotenv/config -r module-alias/register ./dist/main.js",
+    "start": "DOTENV_CONFIG_PATH=./config/.env.production node -r dotenv/config ./dist/main.js",
     "sync": "sleep 1 && browser-sync start --config bs-config.js",
     "test": "NODE_ENV=test vitest",
     "type-check": "tsc -b --noEmit"
   },
   "engines": {
     "node": ">=16.0.0"
-  },
-  "_moduleAliases": {
-    "@src": "dist/backend/src",
-    "@shared": "dist/shared/src"
   },
   "dependencies": {
     "better-sqlite3": "^12.8.0",
@@ -33,7 +29,6 @@
     "jet-env": "^1.1.6",
     "jet-logger": "^2.2.3",
     "jet-paths": "^3.1.1",
-    "module-alias": "^2.3.4",
     "morgan": "^1.10.1",
     "tspo": "^1.0.7",
     "zod": "^4.3.6"

@@ -5,5 +5,8 @@
     "shared",
     "backend",
     "frontend"
-  ]
+  ],
+  "dependencies": {
+    "better-sqlite3": "*"
+  }
 }

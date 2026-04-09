@@ -21,8 +21,9 @@ RUN npm run build -w frontend
 
 RUN cp -r frontend/dist/. backend/dist/public/ \
   && mkdir -p backend/dist/backend/src/repos \
-  && npm prune --omit=dev \
   && mkdir -p data
+
+RUN npm ci --omit=dev
 
 FROM dhi.io/node:25-alpine3.23 AS runner
 
@@ -36,6 +37,8 @@ COPY --from=builder /app/package.json ./
 COPY --from=builder /app/backend/package.json ./backend/
 COPY --chown=1000:1000 --from=builder /app/data ./data
 
+VOLUME ["/app/data"]
+
 EXPOSE 8080
 
 ENV NODE_ENV=production \
@@ -44,5 +47,5 @@ ENV NODE_ENV=production \
 
 WORKDIR /app/backend
 
-CMD ["node", "-r", "module-alias/register", "dist/backend/src/main.js"]
+CMD ["node", "dist/backend/src/main.js"]
 

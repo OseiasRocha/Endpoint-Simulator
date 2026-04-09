@@ -5,7 +5,7 @@ export {
   EndpointWithIdSchema,
   SimulatorEndpointSchema,
   TransmitResultSchema,
-} from '@shared';
+} from '../../../shared/src';
 
 export type {
   Protocol,
@@ -14,4 +14,4 @@ export type {
   IEndpoint,
   SimulatorEndpoint,
   TransmitResult,
-} from '@shared';
+} from '../../../shared/src';

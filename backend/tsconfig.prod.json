@@ -8,11 +8,6 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "paths": {
-      "@src/*": ["./src/*"],
-      "@shared": ["../shared/src/index"],
-      "@shared/*": ["../shared/src/*"]
-    },
     "useUnknownInCatchVariables": false,
     "sourceMap": false,
     "removeComments": true

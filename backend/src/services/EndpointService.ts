@@ -1,7 +1,7 @@
-import HttpStatusCodes from '@src/common/constants/HttpStatusCodes';
-import { RouteError } from '@src/common/utils/route-errors';
-import { IEndpoint, EndpointInput } from '@src/schemas/endpointSchema';
-import EndpointRepo from '@src/repos/EndpointRepo';
+import HttpStatusCodes from '../common/constants/HttpStatusCodes';
+import { RouteError } from '../common/utils/route-errors';
+import { IEndpoint, EndpointInput } from '../schemas/endpointSchema';
+import EndpointRepo from '../repos/EndpointRepo';
 
 /******************************************************************************
                                 Constants

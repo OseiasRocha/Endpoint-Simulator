@@ -1,9 +1,9 @@
 import { ZodError } from 'zod';
 
-import HttpStatusCodes from '@src/common/constants/HttpStatusCodes';
-import { RouteError } from '@src/common/utils/route-errors';
-import { EndpointSchema } from '@src/schemas/endpointSchema';
-import EndpointService from '@src/services/EndpointService';
+import HttpStatusCodes from '../common/constants/HttpStatusCodes';
+import { RouteError } from '../common/utils/route-errors';
+import { EndpointSchema } from '../schemas/endpointSchema';
+import EndpointService from '../services/EndpointService';
 
 import { Req, Res } from './common/express-types';
 

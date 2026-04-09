@@ -1,7 +1,7 @@
-import HttpStatusCodes from '@src/common/constants/HttpStatusCodes';
-import { RouteError } from '@src/common/utils/route-errors';
-import EndpointRepo from '@src/repos/EndpointRepo';
-import TransmitService from '@src/services/TransmitService';
+import HttpStatusCodes from '../common/constants/HttpStatusCodes';
+import { RouteError } from '../common/utils/route-errors';
+import EndpointRepo from '../repos/EndpointRepo';
+import TransmitService from '../services/TransmitService';
 
 import { Req, Res } from './common/express-types';
 

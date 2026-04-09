@@ -1,8 +1,8 @@
 import { eq } from 'drizzle-orm';
 
-import db from '@src/db';
-import { endpoints } from '@src/db/schema';
-import { IEndpoint, EndpointInput } from '@src/schemas/endpointSchema';
+import db from '../db';
+import { endpoints } from '../db/schema';
+import { IEndpoint, EndpointInput } from '../schemas/endpointSchema';
 
 /******************************************************************************
                                 Functions
