@@ -8,7 +8,7 @@ It includes:
 - Optional Python listener (`listener.py`) for local protocol testing
 
 Docker Hub image:
-- https://hub.docker.com/r/oseiasrocha/endpoint-simulator
+- https://hub.docker.com/r/oseiasrocha/endpointlab
 
 ## Features
 
@@ -85,7 +85,7 @@ You can configure listener behavior with env vars:
 ```bash
 docker pull oseiasrocha/endpoint-simulator:latest
 docker run --rm -p 8080:8080 \
-  -v ./data:/app/data \
+  -v endpointlab-data:/app/data \
   oseiasrocha/endpoint-simulator:latest
 ```
 
@@ -96,43 +96,22 @@ App will be available at `http://localhost:8080`.
 ```bash
 docker build -t endpoint-simulator .
 docker run --rm -p 8080:8080 \
-  -v ./data:/app/data \
+  -v endpointlab-data:/app/data \
   endpoint-simulator
 ```
 
-> **Note:** The `-v` flag mounts a local `./data` directory for SQLite persistence. Without it, all endpoint data is lost when the container is removed. The directory will be created automatically on first run.
+> **Note:** The `-v` flag mounts a named Docker volume for SQLite persistence. Without it, all endpoint data is lost when the container is removed. You can also use a bind mount (`-v ./data:/app/data`) but ensure the host directory is writable by UID 1000.
 
-## Docker + Listener
-
-By default, the container runs only the Node app.
-
-To also run `listener.py` inside the container:
+To override the database path:
 
 ```bash
-docker run --rm \
-  -e RUN_LISTENER=true \
-  -p 8080:8080 \
-  -p 18081:18081 \
+docker run --rm -p 8080:8080 \
+  -e DB_PATH=/app/data/db.sqlite \
+  -v endpointlab-data:/app/data \
   endpoint-simulator
 ```
 
-Default listener config in container:
-- TCP enabled on `18081`
-- HTTP disabled (`18080`)
-- UDP disabled (`18082`)
-
-You can override with env vars, for example:
-
-```bash
-docker run --rm \
-  -e RUN_LISTENER=true \
-  -e LISTENER_ENABLE_HTTP=true \
-  -e LISTENER_HTTP_PORT=18080 \
-  -p 8080:8080 \
-  -p 18080:18080 \
-  -p 18081:18081 \
-  endpoint-simulator
-```
+> **Note:** `listener.py` is not included in the Docker image. To use the listener, run it locally alongside the container (see [Run Locally](#run-locally-manual)).
 
 ## Useful Commands
 
