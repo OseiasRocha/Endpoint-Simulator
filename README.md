@@ -83,10 +83,10 @@ You can configure listener behavior with env vars:
 ### Option A: Pull prebuilt image from Docker Hub
 
 ```bash
-docker pull oseiasrocha/endpoint-simulator:latest
-docker run --rm -p 8080:8080 \
+docker pull oseiasrocha/endpointlab:latest
+docker run -p 8080:8080 \
   -v endpointlab-data:/app/data \
-  oseiasrocha/endpoint-simulator:latest
+  oseiasrocha/endpointlab:latest
 ```
 
 App will be available at `http://localhost:8080`.
@@ -94,22 +94,13 @@ App will be available at `http://localhost:8080`.
 ### Option B: Build locally
 
 ```bash
-docker build -t endpoint-simulator .
-docker run --rm -p 8080:8080 \
+docker build -t endpointlab .
+docker run -p 8080:8080 \
   -v endpointlab-data:/app/data \
-  endpoint-simulator
+  endpointlab
 ```
 
-> **Note:** The `-v` flag mounts a named Docker volume for SQLite persistence. Without it, all endpoint data is lost when the container is removed. You can also use a bind mount (`-v ./data:/app/data`) but ensure the host directory is writable by UID 1000.
-
-To override the database path:
-
-```bash
-docker run --rm -p 8080:8080 \
-  -e DB_PATH=/app/data/db.sqlite \
-  -v endpointlab-data:/app/data \
-  endpoint-simulator
-```
+> **Note:** The `-v` flag mounts a named Docker volume so data persists across container recreations. Without it, Docker creates an anonymous volume that is tied to the container and lost when it is removed. You can also use a bind mount (`-v ./data:/app/data`) if you prefer a local directory. The default database path is `/app/data/db.sqlite` and can be overridden with `-e DB_PATH=<path>`.
 
 > **Note:** `listener.py` is not included in the Docker image. To use the listener, run it locally alongside the container (see [Run Locally](#run-locally-manual)).
 
