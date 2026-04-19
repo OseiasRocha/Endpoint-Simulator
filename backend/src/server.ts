@@ -25,7 +25,13 @@ if (EnvVars.NodeEnv === NodeEnvs.DEV) {
 }
 
 if (EnvVars.NodeEnv === NodeEnvs.PRODUCTION) {
-  app.use(helmet());
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        upgradeInsecureRequests: null,
+      },
+    },
+  }));
 }
 
 app.use(Paths._, BaseRouter);
