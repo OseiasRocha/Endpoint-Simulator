@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTheme } from '@mui/material/styles';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -12,6 +13,8 @@ import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import SendIcon from '@mui/icons-material/Send';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -27,6 +30,7 @@ import JsonDiffDisplay from './JsonDiffDisplay';
 
 const BORDER_COLORS: Record<Protocol, string> = {
   HTTP: '#49cc90',
+  HTTPS: '#1f9d8b',
   TCP: '#9b59b6',
   UDP: '#e67e22',
 };
@@ -43,20 +47,28 @@ interface Props {
   endpoint: SimulatorEndpoint;
   onEdit: (endpoint: SimulatorEndpoint) => void;
   onDelete: (id: number) => void;
+  onCopy: (endpoint: SimulatorEndpoint) => void;
+  onDragStart: (id: number) => void;
+  onDragEnd: () => void;
+  isDragging?: boolean;
 }
 
-export default function EndpointCard({ endpoint, onEdit, onDelete }: Props) {
+export default function EndpointCard({ endpoint, onEdit, onDelete, onCopy, onDragStart, onDragEnd, isDragging }: Props) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const [expanded, setExpanded] = useState(false);
   const [sending, setSending] = useState(false);
   const [transmitResult, setTransmitResult] = useState<TransmitResult | null>(null);
   const [diffResult, setDiffResult] = useState<DiffResult | null>(null);
 
-  const borderColor = endpoint.protocol === 'HTTP' && endpoint.httpMethod
+  const isWebProtocol = endpoint.protocol === 'HTTP' || endpoint.protocol === 'HTTPS';
+
+  const borderColor = isWebProtocol && endpoint.httpMethod
     ? HTTP_BORDER[endpoint.httpMethod]
     : BORDER_COLORS[endpoint.protocol];
 
-  const address = endpoint.protocol === 'HTTP'
-    ? `${endpoint.host}:${endpoint.port}${endpoint.path ?? ''}`
+  const address = isWebProtocol
+    ? `${endpoint.protocol.toLowerCase()}://${endpoint.host}:${endpoint.port}${endpoint.path ?? ''}`
     : `${endpoint.host}:${endpoint.port}`;
 
   async function handleSend() {
@@ -79,15 +91,40 @@ export default function EndpointCard({ endpoint, onEdit, onDelete }: Props) {
   }
 
   return (
-    <Box sx={{ position: 'relative', mb: 1 }}>
+    <Box sx={{ position: 'relative', mb: 1, opacity: isDragging ? 0.4 : 1, transition: 'opacity 0.15s' }}>
+      {/* Drag handle on the left — only this element is draggable so text inside the card stays selectable */}
+      <Box
+        draggable
+        onDragStart={e => {
+          e.dataTransfer.setData('text/plain', String(endpoint.id));
+          e.dataTransfer.effectAllowed = 'move';
+          onDragStart(endpoint.id!);
+        }}
+        onDragEnd={onDragEnd}
+        sx={{
+          position: 'absolute', top: 0, left: 4, height: 52, width: 20,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'grab', zIndex: 2,
+          color: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.18)',
+          '&:hover': { color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)' },
+        }}
+      >
+        <DragIndicatorIcon sx={{ fontSize: 14 }} />
+      </Box>
+
       {/* Action buttons sit outside AccordionSummary to avoid <button> inside <button> */}
       <Box
-        sx={{ position: 'absolute', top: 0, height: 52, right: 44, display: 'flex', alignItems: 'center', gap: 0.5, zIndex: 1 }}
+        sx={{ position: 'absolute', top: 0, height: 52, right: 44, display: 'flex', alignItems: 'center', gap: 0.5, zIndex: 1, pr: 1 }}
         onClick={e => e.stopPropagation()}
       >
+        <Tooltip title="Duplicate">
+          <IconButton size="small" onClick={() => onCopy(endpoint)}>
+            <ContentCopyIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+          </IconButton>
+        </Tooltip>
         <Tooltip title="Edit">
           <IconButton size="small" onClick={() => onEdit(endpoint)}>
-            <EditIcon fontSize="small" sx={{ color: '#666' }} />
+            <EditIcon fontSize="small" sx={{ color: 'text.secondary' }} />
           </IconButton>
         </Tooltip>
         <Tooltip title="Delete">
@@ -103,17 +140,19 @@ export default function EndpointCard({ endpoint, onEdit, onDelete }: Props) {
         disableGutters
         elevation={0}
         sx={{
-          border: `1px solid #e8e8e8`,
+          border: `1px solid ${isDark ? '#2a3540' : '#e8e8e8'}`,
           borderLeft: `4px solid ${borderColor}`,
           borderRadius: '4px !important',
           '&:before': { display: 'none' },
-          bgcolor: expanded ? '#f8fff8' : '#fff',
+          bgcolor: expanded
+            ? (isDark ? '#1a2e1a' : '#f8fff8')
+            : 'background.paper',
           transition: 'background-color 0.2s',
         }}
       >
         <AccordionSummary
-          expandIcon={<ExpandMoreIcon sx={{ color: '#666' }} />}
-          sx={{ px: 2, py: 0.5, minHeight: 52, pr: 12 }}
+          expandIcon={<ExpandMoreIcon sx={{ color: 'text.secondary' }} />}
+          sx={{ py: 0.5, minHeight: 52, pl: 3, pr: 19 }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
             <ProtocolBadge protocol={endpoint.protocol} httpMethod={endpoint.httpMethod} />
@@ -122,7 +161,7 @@ export default function EndpointCard({ endpoint, onEdit, onDelete }: Props) {
               sx={{
                 fontFamily: '"JetBrains Mono", "Fira Code", monospace',
                 fontSize: '0.875rem',
-                color: '#333',
+                color: 'text.primary',
                 fontWeight: 500,
                 flex: 1,
               }}
@@ -131,7 +170,7 @@ export default function EndpointCard({ endpoint, onEdit, onDelete }: Props) {
             </Typography>
 
             <Typography
-              sx={{ fontSize: '0.85rem', color: '#666', flex: 2, display: { xs: 'none', sm: 'block' } }}
+              sx={{ fontSize: '0.85rem', color: 'text.secondary', flex: 2, display: { xs: 'none', sm: 'block' } }}
               noWrap
             >
               {endpoint.name}
@@ -151,31 +190,33 @@ export default function EndpointCard({ endpoint, onEdit, onDelete }: Props) {
 
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
             <Box>
-              <Typography variant="caption" sx={{ color: '#888', textTransform: 'uppercase', fontWeight: 600 }}>Protocol</Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled', textTransform: 'uppercase', fontWeight: 600 }}>Protocol</Typography>
               <Typography variant="body2" sx={{ fontWeight: 500 }}>{endpoint.protocol}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: '#888', textTransform: 'uppercase', fontWeight: 600 }}>Host</Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled', textTransform: 'uppercase', fontWeight: 600 }}>Host</Typography>
               <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{endpoint.host}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: '#888', textTransform: 'uppercase', fontWeight: 600 }}>Port</Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled', textTransform: 'uppercase', fontWeight: 600 }}>Port</Typography>
               <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{endpoint.port}</Typography>
             </Box>
-            {endpoint.protocol === 'HTTP' && endpoint.path && (
+            {isWebProtocol && endpoint.path && (
               <Box>
-                <Typography variant="caption" sx={{ color: '#888', textTransform: 'uppercase', fontWeight: 600 }}>Path</Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled', textTransform: 'uppercase', fontWeight: 600 }}>Path</Typography>
                 <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{endpoint.path}</Typography>
               </Box>
             )}
             <Box>
-              <Typography variant="caption" sx={{ color: '#888', textTransform: 'uppercase', fontWeight: 600 }}>Response</Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled', textTransform: 'uppercase', fontWeight: 600 }}>Response</Typography>
               <Chip
                 label={endpoint.hasResponse ? 'Yes' : 'No'}
                 size="small"
                 sx={{
-                  bgcolor: endpoint.hasResponse ? '#e8f8f0' : '#f5f5f5',
-                  color: endpoint.hasResponse ? '#27ae60' : '#888',
+                  bgcolor: endpoint.hasResponse
+                    ? (isDark ? 'rgba(73,204,144,0.15)' : '#e8f8f0')
+                    : (isDark ? 'rgba(255,255,255,0.08)' : '#f0f0f0'),
+                  color: endpoint.hasResponse ? '#49cc90' : 'text.secondary',
                   fontWeight: 600,
                   fontSize: '0.7rem',
                   height: 20,
@@ -186,13 +227,13 @@ export default function EndpointCard({ endpoint, onEdit, onDelete }: Props) {
           </Box>
 
           {endpoint.description && (
-            <Typography variant="body2" sx={{ color: '#555', mb: 2, fontStyle: 'italic' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2, fontStyle: 'italic' }}>
               {endpoint.description}
             </Typography>
           )}
 
           <JsonDisplay label="Request Body" value={endpoint.requestBody} />
-          {endpoint.hasResponse && <JsonDisplay label="Response Body" value={endpoint.responseBody} />}
+          {endpoint.hasResponse && <JsonDisplay label="Expected Response" value={endpoint.responseBody} />}
 
           <Box sx={{ mt: 2 }}>
             <Button
@@ -229,7 +270,7 @@ export default function EndpointCard({ endpoint, onEdit, onDelete }: Props) {
                 <Typography variant="caption" sx={{ fontWeight: 700, color: transmitResult.success ? '#27ae60' : '#e74c3c', textTransform: 'uppercase' }}>
                   {transmitResult.success ? 'Success' : 'Failed'}
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#888', ml: 'auto' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', ml: 'auto' }}>
                   {transmitResult.latencyMs} ms
                 </Typography>
               </Box>

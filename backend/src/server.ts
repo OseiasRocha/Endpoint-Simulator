@@ -8,6 +8,7 @@ import morgan from 'morgan';
 import Paths from './common/constants/Paths';
 import { RouteError } from './common/utils/route-errors';
 import BaseRouter from './routes/apiRouter';
+import DocsRouter from './routes/DocsRoutes';
 
 import EnvVars, { NodeEnvs } from './common/constants/env';
 
@@ -35,6 +36,10 @@ if (EnvVars.NodeEnv === NodeEnvs.PRODUCTION) {
 }
 
 app.use(Paths._, BaseRouter);
+app.use(Paths._, DocsRouter);
+app.use(Paths._, (_req, res) => {
+  res.status(404).json({ message: 'Route not found' });
+});
 
 if (EnvVars.NodeEnv === NodeEnvs.PRODUCTION) {
   const publicDirCandidates = [path.join(__dirname, 'public'), path.resolve(__dirname, '../../public')];
@@ -44,13 +49,19 @@ if (EnvVars.NodeEnv === NodeEnvs.PRODUCTION) {
 }
 
 app.use((err: Error, _: Request, res: Response, next: NextFunction) => {
+  if (res.headersSent) {
+    return next(err);
+  }
+
   if (EnvVars.NodeEnv !== NodeEnvs.TEST.valueOf()) {
     logger.err(err, true);
   }
+
   if (err instanceof RouteError) {
-    res.status(err.status).json({ error: err.message });
+    return res.status(err.status).json({ message: err.message });
   }
-  return next(err);
+
+  return res.status(500).json({ message: 'Internal server error' });
 });
 
 /******************************************************************************

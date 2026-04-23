@@ -23,11 +23,16 @@ function addOne(data: EndpointInput): IEndpoint {
   return EndpointRepo.add(data);
 }
 
+function upsertMany(data: EndpointInput[]): { created: IEndpoint[]; updated: IEndpoint[] } {
+  return EndpointRepo.bulkUpsert(data);
+}
+
 function updateOne(id: number, data: EndpointInput): IEndpoint {
-  if (!EndpointRepo.persists(id)) {
+  const existing = EndpointRepo.getById(id);
+  if (!existing) {
     throw new RouteError(HttpStatusCodes.NOT_FOUND, Errors.NOT_FOUND);
   }
-  return EndpointRepo.update(id, data);
+  return EndpointRepo.update(id, { ...data, externalId: data.externalId ?? existing.externalId });
 }
 
 function deleteOne(id: number): void {
@@ -45,6 +50,7 @@ export default {
   Errors,
   getAll,
   addOne,
+  upsertMany,
   updateOne,
   delete: deleteOne,
 } as const;
