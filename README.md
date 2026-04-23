@@ -69,6 +69,8 @@ Notes:
 
 | Route | Purpose |
 | --- | --- |
+| `GET /api/openapi.json` | Return the backend OpenAPI document |
+| `GET /api/docs` | Open the interactive Swagger UI |
 | `GET /api/endpoints` | List all saved endpoints |
 | `POST /api/endpoints` | Create one endpoint |
 | `PUT /api/endpoints/:id` | Update one endpoint |

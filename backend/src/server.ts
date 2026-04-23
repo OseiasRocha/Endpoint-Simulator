@@ -8,6 +8,7 @@ import morgan from 'morgan';
 import Paths from './common/constants/Paths';
 import { RouteError } from './common/utils/route-errors';
 import BaseRouter from './routes/apiRouter';
+import DocsRouter from './routes/DocsRoutes';
 
 import EnvVars, { NodeEnvs } from './common/constants/env';
 
@@ -35,6 +36,7 @@ if (EnvVars.NodeEnv === NodeEnvs.PRODUCTION) {
 }
 
 app.use(Paths._, BaseRouter);
+app.use(Paths._, DocsRouter);
 app.use(Paths._, (_req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });

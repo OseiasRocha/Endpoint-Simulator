@@ -19,6 +19,7 @@
     "node": ">=16.0.0"
   },
   "dependencies": {
+    "@types/swagger-ui-express": "^4.1.8",
     "better-sqlite3": "^12.8.0",
     "dotenv": "^17.3.1",
     "drizzle-orm": "^0.45.1",
@@ -28,6 +29,7 @@
     "jet-logger": "^2.2.3",
     "jet-paths": "^3.1.1",
     "morgan": "^1.10.1",
+    "swagger-ui-express": "^5.0.1",
     "tspo": "^1.0.7",
     "zod": "^4.3.6"
   },

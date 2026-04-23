@@ -66,12 +66,18 @@ Routes:
 
 | Method | Path | Behavior |
 | --- | --- | --- |
+| `GET` | `/openapi.json` | Return the OpenAPI document |
+| `GET` | `/docs` | Serve the Swagger UI |
 | `GET` | `/` | Return all endpoints |
 | `POST` | `/` | Create one endpoint |
 | `POST` | `/bulk` | Validate an array and bulk upsert |
 | `PUT` | `/:id` | Update one endpoint |
 | `DELETE` | `/:id` | Delete one endpoint |
 | `POST` | `/:id/send` | Execute one saved endpoint |
+
+Swagger endpoints:
+- `GET /api/openapi.json` returns the OpenAPI spec as JSON
+- `GET /api/docs` serves the interactive Swagger UI
 
 ## Schema
 
