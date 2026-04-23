@@ -30,6 +30,7 @@ import JsonDiffDisplay from './JsonDiffDisplay';
 
 const BORDER_COLORS: Record<Protocol, string> = {
   HTTP: '#49cc90',
+  HTTPS: '#1f9d8b',
   TCP: '#9b59b6',
   UDP: '#e67e22',
 };
@@ -60,12 +61,14 @@ export default function EndpointCard({ endpoint, onEdit, onDelete, onCopy, onDra
   const [transmitResult, setTransmitResult] = useState<TransmitResult | null>(null);
   const [diffResult, setDiffResult] = useState<DiffResult | null>(null);
 
-  const borderColor = endpoint.protocol === 'HTTP' && endpoint.httpMethod
+  const isWebProtocol = endpoint.protocol === 'HTTP' || endpoint.protocol === 'HTTPS';
+
+  const borderColor = isWebProtocol && endpoint.httpMethod
     ? HTTP_BORDER[endpoint.httpMethod]
     : BORDER_COLORS[endpoint.protocol];
 
-  const address = endpoint.protocol === 'HTTP'
-    ? `${endpoint.host}:${endpoint.port}${endpoint.path ?? ''}`
+  const address = isWebProtocol
+    ? `${endpoint.protocol.toLowerCase()}://${endpoint.host}:${endpoint.port}${endpoint.path ?? ''}`
     : `${endpoint.host}:${endpoint.port}`;
 
   async function handleSend() {
@@ -198,7 +201,7 @@ export default function EndpointCard({ endpoint, onEdit, onDelete, onCopy, onDra
               <Typography variant="caption" sx={{ color: 'text.disabled', textTransform: 'uppercase', fontWeight: 600 }}>Port</Typography>
               <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{endpoint.port}</Typography>
             </Box>
-            {endpoint.protocol === 'HTTP' && endpoint.path && (
+            {isWebProtocol && endpoint.path && (
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.disabled', textTransform: 'uppercase', fontWeight: 600 }}>Path</Typography>
                 <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{endpoint.path}</Typography>

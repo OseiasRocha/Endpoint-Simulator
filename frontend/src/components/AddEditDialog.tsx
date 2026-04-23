@@ -17,7 +17,7 @@ import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import type { SimulatorEndpoint, Protocol, HttpMethod } from '../types/endpoint';
 
-const PROTOCOLS: Protocol[] = ['HTTP', 'TCP', 'UDP'];
+const PROTOCOLS: Protocol[] = ['HTTP', 'HTTPS', 'TCP', 'UDP'];
 const HTTP_METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
 
 const EMPTY: Omit<SimulatorEndpoint, 'id'> = {
@@ -48,6 +48,10 @@ function isValidJson(s: string) {
   try { JSON.parse(s); return true; } catch { return false; }
 }
 
+function isWebProtocol(protocol: Protocol) {
+  return protocol === 'HTTP' || protocol === 'HTTPS';
+}
+
 export default function AddEditDialog({ open, initial, groups, onClose, onSave }: Props) {
   const [form, setForm] = useState<Omit<SimulatorEndpoint, 'id'>>(
     initial ? { ...EMPTY, ...initial } : EMPTY,
@@ -64,9 +68,9 @@ export default function AddEditDialog({ open, initial, groups, onClose, onSave }
     if (!form.name.trim()) e.name = 'Name is required';
     if (!form.host.trim()) e.host = 'Host is required';
     if (!form.port || form.port < 1 || form.port > 65535) e.port = 'Port must be 1–65535';
-    if (form.protocol === 'HTTP' && !form.path?.trim()) e.path = 'Path is required for HTTP';
-    if (form.protocol === 'HTTP' && form.requestBody && !isValidJson(form.requestBody)) e.requestBody = 'Invalid JSON';
-    if (form.protocol === 'HTTP' && form.hasResponse && form.responseBody && !isValidJson(form.responseBody)) e.responseBody = 'Invalid JSON';
+    if (isWebProtocol(form.protocol) && !form.path?.trim()) e.path = `Path is required for ${form.protocol}`;
+    if (isWebProtocol(form.protocol) && form.requestBody && !isValidJson(form.requestBody)) e.requestBody = 'Invalid JSON';
+    if (isWebProtocol(form.protocol) && form.hasResponse && form.responseBody && !isValidJson(form.responseBody)) e.responseBody = 'Invalid JSON';
     return e;
   }
 
@@ -75,7 +79,7 @@ export default function AddEditDialog({ open, initial, groups, onClose, onSave }
     if (Object.keys(e).length) { setErrors(e); return; }
 
     const payload = { ...form };
-    if (payload.protocol !== 'HTTP') {
+    if (!isWebProtocol(payload.protocol)) {
       delete payload.httpMethod;
       delete payload.path;
     }
@@ -84,7 +88,7 @@ export default function AddEditDialog({ open, initial, groups, onClose, onSave }
   }
 
   const isEditing = !!initial?.id;
-  const usesJsonBodies = form.protocol === 'HTTP';
+  const usesJsonBodies = isWebProtocol(form.protocol);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: 2 } }}>
@@ -151,7 +155,7 @@ export default function AddEditDialog({ open, initial, groups, onClose, onSave }
               </Select>
             </FormControl>
 
-            {form.protocol === 'HTTP' && (
+            {isWebProtocol(form.protocol) && (
               <FormControl size="small" sx={{ minWidth: 120 }}>
                 <InputLabel>Method *</InputLabel>
                 <Select
@@ -187,7 +191,7 @@ export default function AddEditDialog({ open, initial, groups, onClose, onSave }
             />
           </Box>
 
-          {form.protocol === 'HTTP' && (
+          {isWebProtocol(form.protocol) && (
             <TextField
               label="Path *"
               value={form.path ?? ''}

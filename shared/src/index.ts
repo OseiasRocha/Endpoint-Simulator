@@ -5,7 +5,7 @@ export { getEndpointFallbackKey, getEndpointImportKey } from './endpointIdentity
                              Primitive Schemas
 ******************************************************************************/
 
-export const ProtocolSchema = z.enum(['HTTP', 'TCP', 'UDP']);
+export const ProtocolSchema = z.enum(['HTTP', 'HTTPS', 'TCP', 'UDP']);
 export const HttpMethodSchema = z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']);
 
 /******************************************************************************
@@ -32,13 +32,13 @@ export const EndpointSchema = z
   })
   .refine(
     (data) => {
-      if (data.protocol === 'HTTP') {
+      if (data.protocol === 'HTTP' || data.protocol === 'HTTPS') {
         return !!data.httpMethod && !!data.path;
       }
       return true;
     },
     {
-      message: 'httpMethod and path are required for HTTP protocol',
+      message: 'httpMethod and path are required for HTTP and HTTPS protocols',
       path: ['httpMethod'],
     },
   );

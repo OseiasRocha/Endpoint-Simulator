@@ -1,5 +1,6 @@
 import dgram from 'dgram';
 import http from 'http';
+import https from 'https';
 import net from 'net';
 
 import type { IEndpoint, TransmitResult } from '../../../shared/src';
@@ -14,11 +15,14 @@ const TIMEOUT_MS = 5000;
                                 Functions
 ******************************************************************************/
 
-function transmitHttp(endpoint: IEndpoint): Promise<TransmitResult> {
+function transmitWeb(
+  endpoint: IEndpoint,
+  client: typeof http | typeof https,
+): Promise<TransmitResult> {
   const start = Date.now();
   return new Promise((resolve) => {
     const body = endpoint.requestBody ?? '';
-    const req = http.request(
+    const req = client.request(
       {
         hostname: endpoint.host,
         port: endpoint.port,
@@ -137,10 +141,11 @@ function transmitUdp(endpoint: IEndpoint): Promise<TransmitResult> {
 
 function transmit(endpoint: IEndpoint): Promise<TransmitResult> {
   switch (endpoint.protocol) {
-    case 'HTTP': return transmitHttp(endpoint);
-    case 'TCP':  return transmitTcp(endpoint);
-    case 'UDP':  return transmitUdp(endpoint);
-    default:     throw new Error('Unsupported protocol');
+    case 'HTTP': return transmitWeb(endpoint, http);
+    case 'HTTPS': return transmitWeb(endpoint, https);
+    case 'TCP': return transmitTcp(endpoint);
+    case 'UDP': return transmitUdp(endpoint);
+    default: throw new Error('Unsupported protocol');
   }
 }
 

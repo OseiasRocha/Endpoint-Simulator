@@ -1,6 +1,6 @@
 # Backend
 
-The backend is an Express 5 API that stores endpoint definitions in SQLite and executes outbound HTTP, TCP, and UDP transmissions on demand.
+The backend is an Express 5 API that stores endpoint definitions in SQLite and executes outbound HTTP, HTTPS, TCP, and UDP transmissions on demand.
 
 ## Responsibilities
 
@@ -56,28 +56,29 @@ Notes:
 
 ## API Routes
 
-Base path:
+Documentation routes:
+
+| Method | Path | Behavior |
+| --- | --- | --- |
+| `GET` | `/api/openapi.json` | Return the OpenAPI document |
+| `GET` | `/api/docs` | Serve the Swagger UI |
+
+Endpoint base path:
 
 ```text
 /api/endpoints
 ```
 
-Routes:
+Endpoint routes:
 
 | Method | Path | Behavior |
 | --- | --- | --- |
-| `GET` | `/openapi.json` | Return the OpenAPI document |
-| `GET` | `/docs` | Serve the Swagger UI |
 | `GET` | `/` | Return all endpoints |
 | `POST` | `/` | Create one endpoint |
 | `POST` | `/bulk` | Validate an array and bulk upsert |
 | `PUT` | `/:id` | Update one endpoint |
 | `DELETE` | `/:id` | Delete one endpoint |
 | `POST` | `/:id/send` | Execute one saved endpoint |
-
-Swagger endpoints:
-- `GET /api/openapi.json` returns the OpenAPI spec as JSON
-- `GET /api/docs` serves the interactive Swagger UI
 
 ## Schema
 
@@ -86,8 +87,8 @@ The backend re-exports the shared schema from `shared/src/index.ts`.
 Important validation rules:
 - `name` and `host` are required
 - `port` must be an integer from `1` to `65535`
-- `protocol` must be `HTTP`, `TCP`, or `UDP`
-- `httpMethod` and `path` are required for HTTP endpoints
+- `protocol` must be `HTTP`, `HTTPS`, `TCP`, or `UDP`
+- `httpMethod` and `path` are required for HTTP and HTTPS endpoints
 
 Bulk upsert behavior:
 - Imported rows with `externalId` are matched and updated in place
@@ -99,13 +100,14 @@ Bulk upsert behavior:
 `POST /api/endpoints/:id/send` loads the saved row and dispatches by protocol:
 
 - HTTP uses Node's `http` module
+- HTTPS uses Node's `https` module
 - TCP uses `net.createConnection`
 - UDP uses `dgram.createSocket('udp4')`
 
 Transmission details:
 - Timeout is `5000ms`
 - `requestBody` is sent as-is
-- For HTTP requests, `Content-Type` is always `application/json`
+- For HTTP and HTTPS requests, `Content-Type` is always `application/json`
 - `hasResponse=false` returns success as soon as the request is sent or the socket is closed
 - `hasResponse=true` waits for a response body and includes it in the result
 

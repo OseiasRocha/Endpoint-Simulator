@@ -56,7 +56,7 @@ export default function ExportDialog({ open, onClose, endpoints }: Props) {
       const data = { ...ep };
       delete data.id;
       const safeName = ep.name.replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
-      const methodPart = ep.protocol === 'HTTP' && ep.httpMethod ? `-${ep.httpMethod.toLowerCase()}` : '';
+      const methodPart = (ep.protocol === 'HTTP' || ep.protocol === 'HTTPS') && ep.httpMethod ? `-${ep.httpMethod.toLowerCase()}` : '';
       const idPart = ep.id != null ? `-${ep.id}` : `-${i}`;
       zip.file(`${safeName}${methodPart}${idPart}.json`, JSON.stringify(data, null, 2));
     });

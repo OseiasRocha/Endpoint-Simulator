@@ -16,7 +16,7 @@ const endpointInputSchema = {
     },
     protocol: {
       type: 'string',
-      enum: ['HTTP', 'TCP', 'UDP'],
+      enum: ['HTTP', 'HTTPS', 'TCP', 'UDP'],
     },
     host: {
       type: 'string',
@@ -30,15 +30,15 @@ const endpointInputSchema = {
     httpMethod: {
       type: 'string',
       enum: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-      description: 'Required when protocol is HTTP.',
+      description: 'Required when protocol is HTTP or HTTPS.',
     },
     path: {
       type: 'string',
-      description: 'Required when protocol is HTTP.',
+      description: 'Required when protocol is HTTP or HTTPS.',
     },
     requestBody: {
       type: 'string',
-      description: 'Sent as JSON for HTTP and raw text for TCP/UDP.',
+      description: 'Sent as JSON for HTTP/HTTPS and raw text for TCP/UDP.',
     },
     hasResponse: {
       type: 'boolean',
@@ -52,7 +52,7 @@ const endpointInputSchema = {
       type: 'string',
     },
   },
-  description: 'For HTTP endpoints, both httpMethod and path must be provided.',
+  description: 'For HTTP and HTTPS endpoints, both httpMethod and path must be provided.',
   additionalProperties: false,
 } as const;
 
@@ -109,7 +109,7 @@ export const openApiSpec = {
   info: {
     title: 'EndpointLab Backend API',
     version: '1.0.0',
-    description: 'Express API for storing endpoint definitions and executing HTTP, TCP, and UDP transmissions.',
+    description: 'Express API for storing endpoint definitions and executing HTTP, HTTPS, TCP, and UDP transmissions.',
   },
   servers: [
     {

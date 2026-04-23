@@ -1,6 +1,6 @@
 # EndpointLab
 
-EndpointLab is a full-stack workspace for storing endpoint definitions and firing test transmissions to them over HTTP, TCP, and UDP.
+EndpointLab is a full-stack workspace for storing endpoint definitions and firing test transmissions to them over HTTP, HTTPS, TCP, and UDP.
 
 It gives you:
 - A React UI for creating, organizing, importing, exporting, and executing endpoint definitions
@@ -16,7 +16,7 @@ Docker Hub image:
 
 - Create, edit, duplicate, delete, search, and filter endpoint definitions
 - Group endpoints and move them between groups with drag and drop
-- Execute HTTP, TCP, and UDP transmissions from the UI
+- Execute HTTP, HTTPS, TCP, and UDP transmissions from the UI
 - Store an expected JSON response and compare it with the received response in the UI
 - Import and export endpoint definitions as ZIP archives
 - Persist data in SQLite
@@ -36,7 +36,7 @@ Docker Hub image:
 1. The frontend calls the backend API under `/api/endpoints`.
 2. The backend stores endpoint definitions in SQLite.
 3. Clicking **Execute** on a card calls `POST /api/endpoints/:id/send`.
-4. The backend opens an outgoing HTTP, TCP, or UDP connection to the saved target.
+4. The backend opens an outgoing HTTP, HTTPS, TCP, or UDP connection to the saved target.
 5. If the endpoint expects a response, the UI shows the received payload and, when possible, diffs it against the saved expected JSON.
 
 ## Endpoint Shape
@@ -48,11 +48,11 @@ Each saved endpoint uses this schema:
   "externalId": "6a247376-4efd-4791-b2d5-dbc0fd4f1aab",
   "name": "Local TCP echo",
   "description": "Optional note",
-  "protocol": "TCP",
+  "protocol": "HTTPS",
   "host": "localhost",
-  "port": 18081,
-  "httpMethod": null,
-  "path": null,
+  "port": 8443,
+  "httpMethod": "POST",
+  "path": "/echo",
   "requestBody": "{\"hello\":true}",
   "hasResponse": true,
   "responseBody": "{\"response\":2}",
@@ -61,7 +61,7 @@ Each saved endpoint uses this schema:
 ```
 
 Notes:
-- `httpMethod` and `path` are required when `protocol` is `HTTP`.
+- `httpMethod` and `path` are required when `protocol` is `HTTP` or `HTTPS`.
 - `responseBody` is an expected response used by the UI for comparison. It is not served by the backend.
 - Exported files keep a stable hidden `externalId` so imports can update the same logical endpoint without clobbering unrelated ones.
 
@@ -224,6 +224,7 @@ Notes:
 - The Docker image bundles the built frontend into `backend/dist/public`.
 - If `cert.pem` and `key.pem` are missing from `CERT_DIR`, HTTPS is skipped.
 - `listener.py` is not included in the Docker image.
+- Interactive backend API docs are available at `/api/docs`.
 
 ## Verified Commands
 

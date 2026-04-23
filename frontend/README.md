@@ -55,10 +55,10 @@ Implemented client calls:
 The add/edit dialog enforces a few UI-side rules before submission:
 
 - `name`, `host`, and `port` are required
-- HTTP endpoints must include a path
-- HTTP request and expected-response bodies must be valid JSON when present
+- HTTP and HTTPS endpoints must include a path
+- HTTP and HTTPS request and expected-response bodies must be valid JSON when present
 - TCP and UDP request and expected-response bodies can be plain text
-- Non-HTTP endpoints do not send `httpMethod` or `path`
+- Non-web endpoints do not send `httpMethod` or `path`
 - When `hasResponse` is disabled, `responseBody` is omitted from the payload
 
 ## Import And Export
@@ -67,7 +67,7 @@ Export:
 - Generates `endpoints-export.zip`
 - Writes one JSON file per selected endpoint
 - Removes `id` before exporting but keeps the stable hidden `externalId`
-- Builds filenames from endpoint name, optional HTTP method, and id/index
+- Builds filenames from endpoint name, optional HTTP/HTTPS method, and id/index
 
 Import:
 - Accepts ZIP files containing `.json` endpoint definitions
@@ -92,7 +92,7 @@ Clicking **Execute** on a card:
 - Color mode is stored in `localStorage` under `colorMode`
 - Group names come from existing endpoints and can also be typed manually
 - The endpoint list is grouped by named folders plus an `Ungrouped` section
-- Protocol badges show HTTP methods for HTTP rows and protocol names for TCP/UDP rows
+- Protocol badges show HTTP methods for HTTP/HTTPS rows and protocol names for TCP/UDP rows
 
 ## Build And Lint
 

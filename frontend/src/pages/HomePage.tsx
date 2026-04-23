@@ -36,8 +36,8 @@ import AddEditDialog from '../components/AddEditDialog';
 import ExportDialog from '../components/ExportDialog';
 import ImportDialog from '../components/ImportDialog';
 
-const PROTOCOL_FILTERS: Array<Protocol | 'ALL'> = ['ALL', 'HTTP', 'TCP', 'UDP'];
-const PROTOCOLS: Protocol[] = ['HTTP', 'TCP', 'UDP'];
+const PROTOCOL_FILTERS: Array<Protocol | 'ALL'> = ['ALL', 'HTTP', 'HTTPS', 'TCP', 'UDP'];
+const PROTOCOLS: Protocol[] = ['HTTP', 'HTTPS', 'TCP', 'UDP'];
 const UNGROUPED = '__ungrouped__';
 
 // App header color — intentionally always dark regardless of mode (brand identity)
@@ -253,7 +253,7 @@ export default function HomePage() {
               EndpointLab
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.75, mt: 0.5 }}>
-              Manage simulated endpoints with HTTP, TCP and UDP protocols.
+              Manage simulated endpoints with HTTP, HTTPS, TCP and UDP protocols.
             </Typography>
           </Box>
           <Tooltip title={mode === 'dark' ? 'Light mode' : 'Dark mode'}>

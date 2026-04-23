@@ -11,6 +11,7 @@ const HTTP_METHOD_COLORS: Record<HttpMethod, string> = {
 
 const PROTOCOL_COLORS: Record<Protocol, string> = {
   HTTP: '#49cc90',
+  HTTPS: '#1f9d8b',
   TCP: '#9b59b6',
   UDP: '#e67e22',
 };
@@ -21,8 +22,8 @@ interface Props {
 }
 
 export default function ProtocolBadge({ protocol, httpMethod }: Props) {
-  const label = protocol === 'HTTP' && httpMethod ? httpMethod : protocol;
-  const bg = protocol === 'HTTP' && httpMethod
+  const label = (protocol === 'HTTP' || protocol === 'HTTPS') && httpMethod ? httpMethod : protocol;
+  const bg = (protocol === 'HTTP' || protocol === 'HTTPS') && httpMethod
     ? HTTP_METHOD_COLORS[httpMethod]
     : PROTOCOL_COLORS[protocol];
 
