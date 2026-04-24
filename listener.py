@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Local test listener for endpointSimulator.
-Runs HTTP, TCP, and UDP servers concurrently so you can fire
+Local test listener for EndpointLab.
+Runs HTTP, HTTPS, TCP, and UDP servers concurrently so you can fire
 transmissions from the UI and see what arrives.
 """
 
 import json
 import os
 import socket
+import ssl
 import threading
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -33,15 +34,21 @@ def _env_int(name: str, default: int) -> int:
 
 HOST = os.getenv("LISTENER_HOST", "0.0.0.0")
 
-ENABLE_HTTP = _env_bool("LISTENER_ENABLE_HTTP", False)
-ENABLE_TCP  = _env_bool("LISTENER_ENABLE_TCP", True)
-ENABLE_UDP  = _env_bool("LISTENER_ENABLE_UDP", False)
+ENABLE_HTTP  = _env_bool("LISTENER_ENABLE_HTTP",  False)
+ENABLE_HTTPS = _env_bool("LISTENER_ENABLE_HTTPS", False)
+ENABLE_TCP   = _env_bool("LISTENER_ENABLE_TCP",   True)
+ENABLE_UDP   = _env_bool("LISTENER_ENABLE_UDP",   False)
 
-HTTP_PORT = _env_int("LISTENER_HTTP_PORT", 18080)
-TCP_PORT  = _env_int("LISTENER_TCP_PORT", 18081)
-UDP_PORT  = _env_int("LISTENER_UDP_PORT", 18082)
+HTTP_PORT  = _env_int("LISTENER_HTTP_PORT",  18080)
+HTTPS_PORT = _env_int("LISTENER_HTTPS_PORT", 18443)
+TCP_PORT   = _env_int("LISTENER_TCP_PORT",   18081)
+UDP_PORT   = _env_int("LISTENER_UDP_PORT",   18082)
 
-# HTTP response sent back to every request
+# TLS certificate files for the HTTPS listener
+HTTPS_CERT = os.getenv("LISTENER_HTTPS_CERT", "certs/cert.pem")
+HTTPS_KEY  = os.getenv("LISTENER_HTTPS_KEY",  "certs/key.pem")
+
+# HTTP/HTTPS response sent back to every request
 HTTP_RESPONSE_STATUS = 200
 HTTP_RESPONSE_BODY   = {"status": "ok", "echo": "received"}   # set to None for empty body
 
@@ -57,13 +64,14 @@ def log(protocol: str, source: str, data: str) -> None:
     print(f"\n[{ts}] [{protocol}] {source}")
     print(f"  {preview}")
 
-# ── HTTP ──────────────────────────────────────────────────────────────────────
+# ── HTTP / HTTPS ──────────────────────────────────────────────────────────────
 
 class _HTTPHandler(BaseHTTPRequestHandler):
     def _handle(self) -> None:
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length).decode(errors="replace") if length else ""
-        log("HTTP", f"{self.client_address[0]}  {self.command} {self.path}", body)
+        proto = "HTTPS" if isinstance(self.connection, ssl.SSLSocket) else "HTTP"
+        log(proto, f"{self.client_address[0]}  {self.command} {self.path}", body)
 
         if HTTP_RESPONSE_BODY is not None:
             payload = json.dumps(HTTP_RESPONSE_BODY).encode()
@@ -85,7 +93,16 @@ class _HTTPHandler(BaseHTTPRequestHandler):
 
 def _run_http() -> None:
     srv = HTTPServer((HOST, HTTP_PORT), _HTTPHandler)
-    print(f"  [HTTP] {HOST}:{HTTP_PORT}")
+    print(f"  [HTTP]  {HOST}:{HTTP_PORT}")
+    srv.serve_forever()
+
+
+def _run_https() -> None:
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ctx.load_cert_chain(certfile=HTTPS_CERT, keyfile=HTTPS_KEY)
+    srv = HTTPServer((HOST, HTTPS_PORT), _HTTPHandler)
+    srv.socket = ctx.wrap_socket(srv.socket, server_side=True)
+    print(f"  [HTTPS] {HOST}:{HTTPS_PORT}  (cert: {HTTPS_CERT})")
     srv.serve_forever()
 
 # ── TCP ───────────────────────────────────────────────────────────────────────
@@ -111,7 +128,7 @@ def _run_tcp() -> None:
         srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         srv.bind((HOST, TCP_PORT))
         srv.listen()
-        print(f"  [TCP]  {HOST}:{TCP_PORT}")
+        print(f"  [TCP]   {HOST}:{TCP_PORT}")
         while True:
             conn, addr = srv.accept()
             threading.Thread(target=_handle_tcp, args=(conn, addr), daemon=True).start()
@@ -121,7 +138,7 @@ def _run_tcp() -> None:
 def _run_udp() -> None:
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as srv:
         srv.bind((HOST, UDP_PORT))
-        print(f"  [UDP]  {HOST}:{UDP_PORT}")
+        print(f"  [UDP]   {HOST}:{UDP_PORT}")
         while True:
             data, addr = srv.recvfrom(65535)
             log("UDP", f"{addr[0]}:{addr[1]}", data.decode(errors="replace"))
@@ -132,9 +149,10 @@ def _run_udp() -> None:
 
 if __name__ == "__main__":
     targets = [
-        (ENABLE_HTTP, _run_http),
-        (ENABLE_TCP,  _run_tcp),
-        (ENABLE_UDP,  _run_udp),
+        (ENABLE_HTTP,  _run_http),
+        (ENABLE_HTTPS, _run_https),
+        (ENABLE_TCP,   _run_tcp),
+        (ENABLE_UDP,   _run_udp),
     ]
 
     print("Listening on:")
@@ -146,7 +164,7 @@ if __name__ == "__main__":
             threads.append(t)
 
     if not threads:
-        print("  (nothing enabled — set ENABLE_HTTP/TCP/UDP to True)")
+        print("  (nothing enabled — set LISTENER_ENABLE_HTTP/HTTPS/TCP/UDP to true)")
     else:
         print("\nPress Ctrl+C to stop.")
         try:

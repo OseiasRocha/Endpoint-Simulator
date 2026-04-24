@@ -117,13 +117,26 @@ Transmission details:
 - Timeout is `5000ms`
 - `requestBody` is sent as-is
 - For HTTP and HTTPS requests, `Content-Type` is always `application/json`
-- HTTPS requests use Node's bundled roots plus the machine's installed system roots
+- HTTPS requests use Node's default TLS trust store; set `NODE_EXTRA_CA_CERTS` to a PEM file to add custom certificate authorities (e.g. a local self-signed CA)
 - `hasResponse=false` returns success as soon as the request is sent or the socket is closed
 - `hasResponse=true` waits for a response body and includes it in the result
 
-If an HTTPS target uses a certificate chain signed by a locally installed root CA, the backend now attempts to trust it through the system CA store. For the backend's own HTTPS server, clients still need the backend to present the correct certificate chain and hostname.
-
 The configured `responseBody` on an endpoint is not used by the backend transmitter. That field is for frontend-side expected-response comparison.
+
+Transmission result shape:
+
+```json
+{
+  "success": false,
+  "statusCode": 404,
+  "responseBody": "{\"message\":\"not found\"}",
+  "error": "ECONNREFUSED",
+  "latencyMs": 12
+}
+```
+
+- `statusCode` is present only for HTTP/HTTPS responses; absent for TCP, UDP, and connection-level failures
+- `error` carries the Node error message or code (e.g. `ECONNREFUSED`, `EPROTO`, `Request timed out`) when a connection-level failure occurs; absent on success
 
 ## Storage
 

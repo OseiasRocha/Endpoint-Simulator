@@ -2,7 +2,6 @@ import dgram from 'dgram';
 import http from 'http';
 import https from 'https';
 import net from 'net';
-import tls from 'tls';
 
 import type { IEndpoint, TransmitResult } from '../../../shared/src';
 
@@ -11,13 +10,6 @@ import type { IEndpoint, TransmitResult } from '../../../shared/src';
 ******************************************************************************/
 
 const TIMEOUT_MS = 5000;
-const HTTPS_CA_CERTIFICATES = Array.from(
-  new Set([
-    ...tls.getCACertificates('bundled'),
-    ...tls.getCACertificates('system'),
-    ...tls.getCACertificates('extra'),
-  ]),
-);
 
 /******************************************************************************
                                 Functions
@@ -40,14 +32,16 @@ function transmitWeb(
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(body),
         },
-        ...(client === https ? { ca: HTTPS_CA_CERTIFICATES } : {}),
       },
       (res) => {
         let data = '';
         res.on('data', (chunk: Buffer) => (data += chunk.toString()));
         res.on('end', () => {
+          const status = res.statusCode ?? 0;
+          const ok = status >= 200 && status < 400;
           resolve({
-            success: (res.statusCode ?? 0) < 400,
+            success: ok,
+            statusCode: status || undefined,
             responseBody: endpoint.hasResponse ? data : undefined,
             latencyMs: Date.now() - start,
           });
@@ -60,8 +54,8 @@ function transmitWeb(
       resolve({ success: false, error: 'Request timed out', latencyMs: Date.now() - start });
     });
 
-    req.on('error', (err: Error) =>
-      resolve({ success: false, error: err.message, latencyMs: Date.now() - start }),
+    req.on('error', (err: NodeJS.ErrnoException) =>
+      resolve({ success: false, error: err.message || err.code || 'Connection failed', latencyMs: Date.now() - start }),
     );
 
     if (body) req.write(body);

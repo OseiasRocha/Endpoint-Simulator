@@ -58,6 +58,7 @@ export const SimulatorEndpointSchema = EndpointSchema.extend({
 
 export const TransmitResultSchema = z.object({
   success: z.boolean(),
+  statusCode: z.number().optional(),
   responseBody: z.string().optional(),
   error: z.string().optional(),
   latencyMs: z.number(),

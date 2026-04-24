@@ -17,18 +17,19 @@ Docker Hub image:
 - Create, edit, duplicate, delete, search, and filter endpoint definitions
 - Group endpoints and move them between groups with drag and drop
 - Execute HTTP, HTTPS, TCP, and UDP transmissions from the UI
+- View HTTP status codes and connection errors inline on the result card
 - Store an expected JSON response and compare it with the received response in the UI
 - Import and export endpoint definitions as ZIP archives
 - Persist data in SQLite
 - Run locally as separate frontend and backend processes or as a single Docker container
-- Optionally serve HTTPS when `cert.pem` and `key.pem` are available
+- Optionally serve HTTPS when `cert.pem` and `key.pem` are available in `CERT_DIR`
 
 ## Repository Layout
 
 - `frontend/` React 19 + Vite + MUI client
 - `backend/` Express 5 + TypeScript API and SQLite access
 - `shared/` Shared Zod schemas and TypeScript types
-- `listener.py` Optional local HTTP/TCP/UDP receiver for manual testing
+- `listener.py` Optional local HTTP, HTTPS, TCP, and UDP receiver for manual testing
 
 ## How It Works
 
@@ -63,7 +64,7 @@ Notes:
 - `httpMethod` and `path` are required when `protocol` is `HTTP` or `HTTPS`.
 - `responseBody` is an expected response used by the UI for comparison. It is not served by the backend.
 - Exported files keep a stable hidden `externalId` so imports can update the same logical endpoint without clobbering unrelated ones.
-- HTTPS transmissions use Node's bundled CA roots plus the locally installed system CA roots.
+- HTTPS transmissions rely on Node's default TLS trust store. Set `NODE_EXTRA_CA_CERTS` to a PEM file path to trust additional certificate authorities (e.g. a local self-signed CA).
 - For the backend's own HTTPS listener, use `fullchain.pem` when available, or `cert.pem` plus `chain.pem`, so clients receive the full certificate chain.
 
 ## API Summary
@@ -92,11 +93,20 @@ Transmission results look like:
 
 ```json
 {
-  "success": true,
-  "responseBody": "{\"status\":\"ok\"}",
+  "success": false,
+  "statusCode": 404,
+  "responseBody": "{\"message\":\"not found\"}",
+  "error": "ECONNREFUSED",
   "latencyMs": 12
 }
 ```
+
+Fields:
+- `success` — `true` for HTTP 2xx/3xx; `false` for 4xx/5xx or connection failures
+- `statusCode` — HTTP status code when a response was received; absent for TCP, UDP, and connection-level failures
+- `responseBody` — raw response body string, present only when the endpoint has `hasResponse: true`
+- `error` — human-readable error for connection failures (e.g. `ECONNREFUSED`, `EPROTO`, `Request timed out`); absent on success
+- `latencyMs` — round-trip time in milliseconds
 
 ## Local Development
 
@@ -118,13 +128,11 @@ The repo uses npm workspaces, so install once at the root.
 
 Backend CA behavior:
 - The backend launch scripts run Node with `--use-system-ca`
-- This helps outbound HTTPS endpoint execution and Node-based clients trust locally installed root CAs
+- This helps outbound HTTPS endpoint execution trust locally installed root CAs
 - For clients calling the backend's HTTPS server, trust depends on the certificate chain the backend presents and the certificate hostname/SANs
 - Keep local HTTPS material outside Git and mount it at runtime.
 
 ### Start the backend
-
-Use the backend's direct dev entry point:
 
 ```bash
 npm run dev:basic -w backend
@@ -158,17 +166,25 @@ python3 listener.py
 
 Defaults:
 - HTTP listener disabled on `18080`
+- HTTPS listener disabled on `18443`
 - TCP listener enabled on `18081`
 - UDP listener disabled on `18082`
 
 Listener environment variables:
-- `LISTENER_HOST`
-- `LISTENER_ENABLE_HTTP`
-- `LISTENER_ENABLE_TCP`
-- `LISTENER_ENABLE_UDP`
-- `LISTENER_HTTP_PORT`
-- `LISTENER_TCP_PORT`
-- `LISTENER_UDP_PORT`
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `LISTENER_HOST` | `0.0.0.0` | Bind address |
+| `LISTENER_ENABLE_HTTP` | `false` | Enable plain HTTP |
+| `LISTENER_ENABLE_HTTPS` | `false` | Enable HTTPS |
+| `LISTENER_ENABLE_TCP` | `true` | Enable TCP |
+| `LISTENER_ENABLE_UDP` | `false` | Enable UDP |
+| `LISTENER_HTTP_PORT` | `18080` | HTTP port |
+| `LISTENER_HTTPS_PORT` | `18443` | HTTPS port |
+| `LISTENER_TCP_PORT` | `18081` | TCP port |
+| `LISTENER_UDP_PORT` | `18082` | UDP port |
+| `LISTENER_HTTPS_CERT` | `certs/cert.pem` | Path to TLS certificate |
+| `LISTENER_HTTPS_KEY` | `certs/key.pem` | Path to TLS private key |
 
 ## Data Storage
 
@@ -203,10 +219,31 @@ Import behavior:
 
 ```bash
 docker pull oseiasrocha/endpointlab:latest
-docker run -p 8080:8080 -p 8443:8443 \
-  -e NODE_EXTRA_CA_CERTS=/app/certs/rootCA.pem \
+docker run -d --name endpointlab \
+  -p 8080:8080 \
   -v endpointlab-data:/app/data \
-  -v /path/to/local-certs:/app/certs \
+  oseiasrocha/endpointlab:latest
+```
+
+### Enable HTTPS
+
+The backend starts an HTTPS listener on `HTTPS_PORT` when `key.pem` and `cert.pem` exist in `CERT_DIR`. Use [mkcert](https://github.com/FiloSottile/mkcert) to generate locally-trusted certificates:
+
+```bash
+mkcert -install
+mkdir -p certs
+mkcert -key-file certs/key.pem -cert-file certs/cert.pem localhost 127.0.0.1
+cp "$(mkcert -CAROOT)/rootCA.pem" certs/rootCA.pem
+```
+
+Then run the container with the cert directory mounted:
+
+```bash
+docker run -d --name endpointlab \
+  -p 8080:8080 -p 8443:8443 \
+  -v endpointlab-data:/app/data \
+  -v ./certs:/app/certs \
+  -e NODE_EXTRA_CA_CERTS=/app/certs/rootCA.pem \
   oseiasrocha/endpointlab:latest
 ```
 
@@ -214,30 +251,31 @@ docker run -p 8080:8080 -p 8443:8443 \
 
 ```bash
 docker build -t endpointlab .
-docker run -p 8080:8080 -p 8443:8443 \
-  -e NODE_EXTRA_CA_CERTS=/app/certs/rootCA.pem \
+docker run -d --name endpointlab \
+  -p 8080:8080 -p 8443:8443 \
   -v endpointlab-data:/app/data \
-  -v /path/to/local-certs:/app/certs \
+  -v ./certs:/app/certs \
+  -e NODE_EXTRA_CA_CERTS=/app/certs/rootCA.pem \
   endpointlab
 ```
 
-Container defaults:
-- HTTP on `http://localhost:8080`
-- HTTPS on `https://localhost:8443`
-- `PORT=8080`
-- `HTTPS_PORT=8443`
-- `CERT_DIR=/app/certs`
-- `DB_PATH=/app/data/db.sqlite`
-- `NODE_EXTRA_CA_CERTS=/app/certs/rootCA.pem` in the recommended local HTTPS setup
+### Container environment variables
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `PORT` | `8080` | HTTP listen port |
+| `HTTPS_PORT` | `8443` | HTTPS listen port (HTTPS only starts if cert files are present) |
+| `CERT_DIR` | `/app/certs` | Directory containing `key.pem` and `cert.pem` |
+| `DB_PATH` | `/app/data/db.sqlite` | SQLite database path |
+| `NODE_EXTRA_CA_CERTS` | — | Path to a PEM CA file trusted for outbound HTTPS connections |
 
 Notes:
-- The Docker image bundles the built frontend into `backend/dist/public`.
-- If `cert.pem` and `key.pem` are missing from `CERT_DIR`, HTTPS is skipped.
+- HTTPS is skipped at startup if `key.pem` or `cert.pem` are missing from `CERT_DIR`.
+- If your HTTPS certificate is signed by an intermediate CA, mount `fullchain.pem` (leaf + chain combined) or provide `cert.pem` plus `chain.pem` in `CERT_DIR`.
+- `NODE_EXTRA_CA_CERTS` is needed when the backend makes outbound requests to an HTTPS endpoint signed by a private CA (e.g. the backend's own HTTPS listener).
+- The Docker image bundles the built frontend under `backend/dist/public`.
 - `listener.py` is not included in the Docker image.
-- Interactive backend API docs are available at `/api/docs`.
-- If your HTTPS certificate is signed by an intermediate CA, mount `fullchain.pem` or provide `cert.pem` plus `chain.pem` in `/app/certs`.
-- Keep `/app/certs` as a mounted local directory or volume, not repo-tracked content.
-- If the backend needs to call an HTTPS endpoint signed by your local CA, mount that CA file in `/app/certs` and set `NODE_EXTRA_CA_CERTS` to its path.
+- Interactive API docs are available at `http://localhost:8080/api/docs`.
 
 ## Verified Commands
 

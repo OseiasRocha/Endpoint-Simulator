@@ -82,14 +82,15 @@ Import:
 Clicking **Execute** on a card:
 
 1. Calls `POST /api/endpoints/:id/send`
-2. Shows success or failure state
-3. Shows latency in milliseconds
-4. Displays any returned payload
-5. When both expected and received bodies are valid JSON, highlights mismatched fields inline
+2. Shows success or failure state with the HTTP status code when available
+3. Shows connection errors inline (e.g. `ECONNREFUSED`, `EPROTO`, `Request timed out`)
+4. Shows latency in milliseconds
+5. Displays any returned payload
+6. When both expected and received bodies are valid JSON, highlights mismatched fields inline
 
 ## UI Notes
 
-- Color mode is stored in `localStorage` under `colorMode`
+- Color mode defaults to dark and is stored in `localStorage` under `colorMode`
 - Group names come from existing endpoints and can also be typed manually
 - The endpoint list is grouped by named folders plus an `Ungrouped` section
 - Protocol badges show HTTP methods for HTTP/HTTPS rows and protocol names for TCP/UDP rows
