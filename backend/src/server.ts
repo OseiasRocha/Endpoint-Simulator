@@ -1,5 +1,6 @@
 import path from 'path';
 import fs from 'fs';
+import cors from 'cors';
 import express, { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import logger from 'jet-logger';
@@ -18,6 +19,7 @@ import EnvVars, { NodeEnvs } from './common/constants/env';
 
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
