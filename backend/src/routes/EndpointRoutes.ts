@@ -85,6 +85,19 @@ function bulkCreate(req: Req, res: Res) {
 }
 
 /**
+ * Reorder endpoints by setting order = index for each id in the array.
+ *
+ * @route POST /api/endpoints/reorder
+ */
+function reorder(req: Req, res: Res) {
+  if (!Array.isArray(req.body) || !req.body.every((x: unknown) => typeof x === 'number')) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Body must be an array of numeric ids');
+  }
+  EndpointService.reorder(req.body as number[]);
+  res.status(HttpStatusCodes.OK).end();
+}
+
+/**
  * Delete one endpoint.
  *
  * @route DELETE /api/endpoints/:id
@@ -114,6 +127,7 @@ export default {
   getAll,
   create,
   bulkCreate,
+  reorder,
   update,
   delete: delete_,
 } as const;

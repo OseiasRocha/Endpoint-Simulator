@@ -69,6 +69,14 @@ export const endpointsApi = {
     );
   },
 
+  reorder(orderedIds: number[]): Promise<void> {
+    return fetch(`${BASE}/reorder`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderedIds),
+    }).then((res) => { if (!res.ok) return getErrorMessage(res).then(msg => { throw new Error(msg); }); });
+  },
+
   bulkUpsert(data: EndpointInput[]): Promise<{ created: SimulatorEndpoint[]; updated: SimulatorEndpoint[] }> {
     return fetch(`${BASE}/bulk`, {
       method: 'POST',

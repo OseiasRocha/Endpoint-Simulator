@@ -26,9 +26,10 @@ import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import DeleteIcon from '@mui/icons-material/Delete';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
-import type { SimulatorEndpoint, Protocol } from '../types/endpoint';
+import type { SimulatorEndpoint, Protocol, TransmitResult } from '../types/endpoint';
 import type { EndpointInput } from '@shared';
 import { endpointsApi } from '../api/endpoints';
 import { useColorMode } from '../context/colorMode';
@@ -51,9 +52,20 @@ interface CardSharedProps {
   onDragStart: (id: number) => void;
   onDragEnd: () => void;
   draggingId: number | null;
+  dragOverCardId: number | null;
+  onCardDragOver: (id: number) => void;
+  onCardDragLeave: (id: number) => void;
+  onDropBefore: (targetId: number, draggedId: number) => void;
+  playResults: Map<number, TransmitResult | 'loading'>;
+  playingGroup: string | null;
 }
 
-function ProtocolSection({ proto, endpoints, ...shared }: CardSharedProps & { proto: Protocol; endpoints: SimulatorEndpoint[] }) {
+function ProtocolSection({
+  proto, endpoints, ...shared
+}: CardSharedProps & {
+  proto: Protocol;
+  endpoints: SimulatorEndpoint[];
+}) {
   if (!endpoints.length) return null;
   return (
     <Box sx={{ mb: 2 }}>
@@ -63,18 +75,37 @@ function ProtocolSection({ proto, endpoints, ...shared }: CardSharedProps & { pr
         </Typography>
         <Divider sx={{ flex: 1 }} />
       </Box>
-      {endpoints.map(ep => (
-        <EndpointCard
-          key={ep.id}
-          endpoint={ep}
-          onEdit={shared.onEdit}
-          onDelete={shared.onDelete}
-          onCopy={shared.onCopy}
-          onDragStart={shared.onDragStart}
-          onDragEnd={shared.onDragEnd}
-          isDragging={shared.draggingId === ep.id}
-        />
-      ))}
+      {endpoints.map(ep => {
+        const isInPlayGroup = shared.playingGroup !== null && (
+          (shared.playingGroup === UNGROUPED && !ep.group) || ep.group === shared.playingGroup
+        );
+        const status = isInPlayGroup ? shared.playResults.get(ep.id!) : undefined;
+        const externalResult = !isInPlayGroup
+          ? undefined
+          : status === 'loading' || status === undefined
+            ? null
+            : status as TransmitResult;
+        const externalSending = status === 'loading';
+
+        return (
+          <EndpointCard
+            key={ep.id}
+            endpoint={ep}
+            onEdit={shared.onEdit}
+            onDelete={shared.onDelete}
+            onCopy={shared.onCopy}
+            onDragStart={shared.onDragStart}
+            onDragEnd={shared.onDragEnd}
+            isDragging={shared.draggingId === ep.id}
+            isDragOver={shared.dragOverCardId === ep.id}
+            onCardDragOver={() => shared.onCardDragOver(ep.id!)}
+            onCardDragLeave={() => shared.onCardDragLeave(ep.id!)}
+            onDropBefore={(draggedId) => shared.onDropBefore(ep.id!, draggedId)}
+            externalResult={externalResult}
+            externalSending={externalSending}
+          />
+        );
+      })}
     </Box>
   );
 }
@@ -94,6 +125,9 @@ export default function HomePage() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [draggingId, setDraggingId] = useState<number | null>(null);
   const [dragOverGroup, setDragOverGroup] = useState<string | null>(null);
+  const [dragOverCardId, setDragOverCardId] = useState<number | null>(null);
+  const [playResults, setPlayResults] = useState<Map<number, TransmitResult | 'loading'>>(new Map());
+  const [playingGroup, setPlayingGroup] = useState<string | null>(null);
 
   // Precompute alpha values using the resolved theme
   const groupHoverBg    = alpha(theme.palette.primary.main, 0.08);
@@ -136,6 +170,73 @@ export default function HomePage() {
       setToast({ msg: String(err), severity: 'error' });
     } finally {
       setDraggingId(null);
+    }
+  }
+
+  async function handleDropOnCard(targetId: number, draggedId: number) {
+    if (draggedId === targetId) return;
+    setDragOverCardId(null);
+
+    const dragged = endpoints.find(e => e.id === draggedId);
+    const target = endpoints.find(e => e.id === targetId);
+    if (!dragged || !target) return;
+
+    const targetGroup = target.group ?? undefined;
+    const draggedGroupChanged = (dragged.group ?? undefined) !== targetGroup;
+
+    let currentEndpoints = endpoints;
+
+    if (draggedGroupChanged) {
+      try {
+        const updated = await endpointsApi.update(draggedId, { ...dragged, group: targetGroup });
+        currentEndpoints = currentEndpoints.map(e => e.id === draggedId ? updated : e);
+        setEndpoints(currentEndpoints);
+      } catch (err) {
+        setToast({ msg: String(err), severity: 'error' });
+        return;
+      }
+    }
+
+    // Build sorted list of the target group excluding the dragged endpoint
+    const groupEps = currentEndpoints
+      .filter(e => (e.group ?? undefined) === targetGroup && e.id !== draggedId)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+    const targetIdx = groupEps.findIndex(e => e.id === targetId);
+    if (targetIdx === -1) return;
+
+    const draggedEp = currentEndpoints.find(e => e.id === draggedId)!;
+    groupEps.splice(targetIdx, 0, draggedEp);
+
+    const orderedIds = groupEps.map(e => e.id!);
+    try {
+      await endpointsApi.reorder(orderedIds);
+      const orderMap = new Map(orderedIds.map((id, i) => [id, i]));
+      setEndpoints(eps => eps.map(e => orderMap.has(e.id!) ? { ...e, order: orderMap.get(e.id!) } : e));
+    } catch (err) {
+      setToast({ msg: String(err), severity: 'error' });
+    }
+  }
+
+  async function handlePlayGroup(groupKey: string) {
+    const groupEps = endpoints
+      .filter(e => groupKey === UNGROUPED ? !e.group : e.group === groupKey)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+    if (groupEps.length === 0) return;
+
+    setPlayingGroup(groupKey);
+    setPlayResults(new Map());
+
+    for (const ep of groupEps) {
+      if (!ep.id) continue;
+      setPlayResults(prev => new Map(prev).set(ep.id!, 'loading'));
+      try {
+        const result = await endpointsApi.send(ep.id);
+        setPlayResults(prev => new Map(prev).set(ep.id!, result));
+      } catch (err) {
+        setPlayResults(prev => new Map(prev).set(ep.id!, { success: false, error: String(err), latencyMs: 0 }));
+      }
     }
   }
 
@@ -240,6 +341,12 @@ export default function HomePage() {
     onDragStart: (id) => setDraggingId(id),
     onDragEnd: () => setDraggingId(null),
     draggingId,
+    dragOverCardId,
+    onCardDragOver: (id) => setDragOverCardId(id),
+    onCardDragLeave: () => setDragOverCardId(null),
+    onDropBefore: handleDropOnCard,
+    playResults,
+    playingGroup,
   };
 
   // Shared sx for group header boxes
@@ -361,8 +468,10 @@ export default function HomePage() {
             {groupNames.map(groupName => {
               const groupEps = filtered.filter(e => e.group === groupName);
               if (!groupEps.length) return null;
+              const sortedGroupEps = [...groupEps].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
               const isCollapsed = collapsedGroups.has(groupName);
               const { onDragOver, onDragLeave, onDrop, isOver } = dropTargetProps(groupName);
+              const isRunning = playingGroup === groupName && [...playResults.values()].some(v => v === 'loading');
               return (
                 <Box key={groupName} sx={{ mb: 3 }} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
                   <Box sx={groupHeaderSx(isOver)} onClick={() => toggleGroup(groupName)}>
@@ -379,6 +488,21 @@ export default function HomePage() {
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                       {groupEps.length} endpoint{groupEps.length !== 1 ? 's' : ''}
                     </Typography>
+                    <Tooltip title="Run all in sequence">
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => { e.stopPropagation(); handlePlayGroup(groupName); }}
+                          disabled={isRunning}
+                          sx={{ p: 0.5, color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+                        >
+                          {isRunning
+                            ? <CircularProgress size={16} sx={{ color: 'inherit' }} />
+                            : <PlayArrowIcon fontSize="small" />
+                          }
+                        </IconButton>
+                      </span>
+                    </Tooltip>
                     <Tooltip title="Delete group">
                       <IconButton
                         size="small"
@@ -396,7 +520,7 @@ export default function HomePage() {
                         <ProtocolSection
                           key={proto}
                           proto={proto}
-                          endpoints={groupEps.filter(e => e.protocol === proto)}
+                          endpoints={sortedGroupEps.filter(e => e.protocol === proto)}
                           {...cardShared}
                         />
                       ))}
@@ -410,9 +534,11 @@ export default function HomePage() {
             {(() => {
               const ungrouped = filtered.filter(e => !e.group);
               if (!ungrouped.length) return null;
+              const sortedUngrouped = [...ungrouped].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
               const isCollapsed = collapsedGroups.has(UNGROUPED);
               const showHeader = groupNames.length > 0;
               const { onDragOver, onDragLeave, onDrop, isOver } = dropTargetProps(UNGROUPED);
+              const isRunning = playingGroup === UNGROUPED && [...playResults.values()].some(v => v === 'loading');
               return (
                 <Box sx={{ mb: 3 }} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
                   {showHeader && (
@@ -427,6 +553,21 @@ export default function HomePage() {
                       <Typography variant="caption" sx={{ color: 'text.disabled' }}>
                         {ungrouped.length} endpoint{ungrouped.length !== 1 ? 's' : ''}
                       </Typography>
+                      <Tooltip title="Run all in sequence">
+                        <span>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => { e.stopPropagation(); handlePlayGroup(UNGROUPED); }}
+                            disabled={isRunning}
+                            sx={{ p: 0.5, color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+                          >
+                            {isRunning
+                              ? <CircularProgress size={16} sx={{ color: 'inherit' }} />
+                              : <PlayArrowIcon fontSize="small" />
+                            }
+                          </IconButton>
+                        </span>
+                      </Tooltip>
                     </Box>
                   )}
                   <Collapse in={!isCollapsed}>
@@ -435,7 +576,7 @@ export default function HomePage() {
                         <ProtocolSection
                           key={proto}
                           proto={proto}
-                          endpoints={ungrouped.filter(e => e.protocol === proto)}
+                          endpoints={sortedUngrouped.filter(e => e.protocol === proto)}
                           {...cardShared}
                         />
                       ))}

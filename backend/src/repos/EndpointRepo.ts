@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, isNull, sql } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 
 import db from '../db';
@@ -27,7 +27,19 @@ function persists(id: number): boolean {
 }
 
 function add(data: EndpointInput): IEndpoint {
-  return db.insert(endpoints).values(toRow(data)).returning().get() as IEndpoint;
+  let order = data.order;
+  if (order == null) {
+    const condition = data.group ? eq(endpoints.group, data.group) : isNull(endpoints.group);
+    const row = db.select({ count: sql<number>`count(*)` }).from(endpoints).where(condition).get();
+    order = row?.count ?? 0;
+  }
+  return db.insert(endpoints).values(toRow({ ...data, order })).returning().get() as IEndpoint;
+}
+
+function reorder(orderedIds: number[]): void {
+  for (let i = 0; i < orderedIds.length; i++) {
+    db.update(endpoints).set({ order: i }).where(eq(endpoints.id, orderedIds[i]!)).run();
+  }
 }
 
 function bulkUpsert(data: EndpointInput[]): { created: IEndpoint[]; updated: IEndpoint[] } {
@@ -94,6 +106,7 @@ function toRow(data: EndpointInput, fallbackExternalId?: string) {
     hasResponse: data.hasResponse,
     responseBody: data.responseBody ?? null,
     group: data.group ?? null,
+    order: data.order ?? null,
   };
 }
 
@@ -106,6 +119,7 @@ export default {
   getById,
   persists,
   add,
+  reorder,
   bulkUpsert,
   update,
   delete: delete_,

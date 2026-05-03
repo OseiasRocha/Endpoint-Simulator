@@ -51,6 +51,10 @@ function updateOne(id: number, data: EndpointInput): IEndpoint {
   return endpoint;
 }
 
+function reorder(orderedIds: number[]): void {
+  EndpointRepo.reorder(orderedIds);
+}
+
 function deleteOne(id: number): void {
   const existing = EndpointRepo.getById(id);
   if (!existing) {
@@ -70,5 +74,6 @@ export default {
   addOne,
   upsertMany,
   updateOne,
+  reorder,
   delete: deleteOne,
 } as const;

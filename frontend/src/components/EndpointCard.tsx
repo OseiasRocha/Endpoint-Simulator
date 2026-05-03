@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -53,9 +53,19 @@ interface Props {
   onDragStart: (id: number) => void;
   onDragEnd: () => void;
   isDragging?: boolean;
+  isDragOver?: boolean;
+  onCardDragOver?: () => void;
+  onCardDragLeave?: () => void;
+  onDropBefore?: (draggedId: number) => void;
+  externalResult?: TransmitResult | null;
+  externalSending?: boolean;
 }
 
-export default function EndpointCard({ endpoint, onEdit, onDelete, onCopy, onDragStart, onDragEnd, isDragging }: Props) {
+export default function EndpointCard({
+  endpoint, onEdit, onDelete, onCopy, onDragStart, onDragEnd,
+  isDragging, isDragOver, onCardDragOver, onCardDragLeave, onDropBefore,
+  externalResult, externalSending,
+}: Props) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const [expanded, setExpanded] = useState(false);
@@ -63,15 +73,23 @@ export default function EndpointCard({ endpoint, onEdit, onDelete, onCopy, onDra
   const [transmitResult, setTransmitResult] = useState<TransmitResult | null>(null);
   const [diffResult, setDiffResult] = useState<DiffResult | null>(null);
 
-  const isWebProtocol = endpoint.protocol === 'HTTP' || endpoint.protocol === 'HTTPS';
+  const hasUrl = endpoint.protocol === 'HTTP' || endpoint.protocol === 'HTTPS'
+    || endpoint.protocol === 'WS' || endpoint.protocol === 'WSS';
 
-  const borderColor = isWebProtocol && endpoint.httpMethod
+  const borderColor = (endpoint.protocol === 'HTTP' || endpoint.protocol === 'HTTPS') && endpoint.httpMethod
     ? HTTP_BORDER[endpoint.httpMethod]
     : BORDER_COLORS[endpoint.protocol];
 
-  const address = isWebProtocol
+  const address = hasUrl
     ? `${endpoint.protocol.toLowerCase()}://${endpoint.host}:${endpoint.port}${endpoint.path ?? ''}`
     : `${endpoint.host}:${endpoint.port}`;
+
+  const displayResult = externalResult !== undefined ? externalResult : transmitResult;
+  const displaySending = externalSending || sending;
+
+  useEffect(() => {
+    if (externalResult != null) setExpanded(true);
+  }, [externalResult]);
 
   async function handleSend() {
     setSending(true);
@@ -93,8 +111,18 @@ export default function EndpointCard({ endpoint, onEdit, onDelete, onCopy, onDra
   }
 
   return (
-    <Box sx={{ position: 'relative', mb: 1, opacity: isDragging ? 0.4 : 1, transition: 'opacity 0.15s' }}>
-      {/* Drag handle on the left — only this element is draggable so text inside the card stays selectable */}
+    <Box
+      sx={{ position: 'relative', mb: 1, opacity: isDragging ? 0.4 : 1, transition: 'opacity 0.15s' }}
+      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); onCardDragOver?.(); }}
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) onCardDragLeave?.(); }}
+      onDrop={(e) => { e.preventDefault(); e.stopPropagation(); onDropBefore?.(Number(e.dataTransfer.getData('text/plain'))); }}
+    >
+      {/* Drop-before indicator */}
+      {isDragOver && (
+        <Box sx={{ position: 'absolute', top: -2, left: 0, right: 0, height: 3, bgcolor: 'primary.main', borderRadius: 1, zIndex: 10 }} />
+      )}
+
+      {/* Drag handle */}
       <Box
         draggable
         onDragStart={e => {
@@ -114,7 +142,7 @@ export default function EndpointCard({ endpoint, onEdit, onDelete, onCopy, onDra
         <DragIndicatorIcon sx={{ fontSize: 14 }} />
       </Box>
 
-      {/* Action buttons sit outside AccordionSummary to avoid <button> inside <button> */}
+      {/* Action buttons */}
       <Box
         sx={{ position: 'absolute', top: 0, height: 52, right: 44, display: 'flex', alignItems: 'center', gap: 0.5, zIndex: 1, pr: 1 }}
         onClick={e => e.stopPropagation()}
@@ -203,7 +231,7 @@ export default function EndpointCard({ endpoint, onEdit, onDelete, onCopy, onDra
               <Typography variant="caption" sx={{ color: 'text.disabled', textTransform: 'uppercase', fontWeight: 600 }}>Port</Typography>
               <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{endpoint.port}</Typography>
             </Box>
-            {isWebProtocol && endpoint.path && (
+            {hasUrl && endpoint.path && (
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.disabled', textTransform: 'uppercase', fontWeight: 600 }}>Path</Typography>
                 <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{endpoint.path}</Typography>
@@ -241,8 +269,8 @@ export default function EndpointCard({ endpoint, onEdit, onDelete, onCopy, onDra
             <Button
               variant="contained"
               onClick={handleSend}
-              disabled={sending}
-              startIcon={sending ? <CircularProgress size={16} sx={{ color: 'inherit' }} /> : <SendIcon />}
+              disabled={displaySending}
+              startIcon={displaySending ? <CircularProgress size={16} sx={{ color: 'inherit' }} /> : <SendIcon />}
               sx={{
                 bgcolor: '#4990e2',
                 color: '#fff',
@@ -257,34 +285,39 @@ export default function EndpointCard({ endpoint, onEdit, onDelete, onCopy, onDra
                 '&:disabled': { bgcolor: '#b0c9ee', color: '#fff' },
               }}
             >
-              {sending ? 'Sending…' : 'Execute'}
+              {displaySending ? 'Sending…' : 'Execute'}
             </Button>
           </Box>
 
-          {transmitResult && (
+          {displayResult && (
             <>
               <Divider sx={{ my: 2 }} />
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                {transmitResult.success
+                {displayResult.success
                   ? <CheckCircleIcon sx={{ fontSize: 18, color: '#49cc90' }} />
                   : <ErrorIcon sx={{ fontSize: 18, color: '#e74c3c' }} />
                 }
-                <Typography variant="caption" sx={{ fontWeight: 700, color: transmitResult.success ? '#27ae60' : '#e74c3c', textTransform: 'uppercase' }}>
-                  {transmitResult.success ? 'Success' : 'Failed'}
+                <Typography variant="caption" sx={{ fontWeight: 700, color: displayResult.success ? '#27ae60' : '#e74c3c', textTransform: 'uppercase' }}>
+                  {displayResult.success ? 'Success' : 'Failed'}
                 </Typography>
+                {displayResult.statusCode != null && (
+                  <Typography variant="caption" sx={{ fontWeight: 700, fontFamily: 'monospace', color: displayResult.success ? 'success.main' : 'error.main' }}>
+                    {displayResult.statusCode}
+                  </Typography>
+                )}
                 <Typography variant="caption" sx={{ color: 'text.secondary', ml: 'auto' }}>
-                  {transmitResult.latencyMs} ms
+                  {displayResult.latencyMs} ms
                 </Typography>
               </Box>
-              {transmitResult.error && (
+              {displayResult.error && (
                 <Typography variant="body2" sx={{ color: '#e74c3c', fontFamily: 'monospace', fontSize: '0.8rem', mb: 1 }}>
-                  {transmitResult.error}
+                  {displayResult.error}
                 </Typography>
               )}
-              {transmitResult.responseBody && (
+              {displayResult.responseBody && (
                 diffResult
-                  ? <JsonDiffDisplay label="Received Response" received={transmitResult.responseBody} diff={diffResult} />
-                  : <JsonDisplay label="Received Response" value={transmitResult.responseBody} />
+                  ? <JsonDiffDisplay label="Received Response" received={displayResult.responseBody} diff={diffResult} />
+                  : <JsonDisplay label="Received Response" value={displayResult.responseBody} />
               )}
             </>
           )}

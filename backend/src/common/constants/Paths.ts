@@ -7,6 +7,7 @@ const Paths = {
     GetAll: '/',
     Create: '/',
     BulkCreate: '/bulk',
+    Reorder: '/reorder',
     Update: '/:id',
     Delete: '/:id',
     Send: '/:id/send',

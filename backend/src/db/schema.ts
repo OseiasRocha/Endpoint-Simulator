@@ -14,4 +14,5 @@ export const endpoints = sqliteTable('endpoints', {
   hasResponse: integer('has_response', { mode: 'boolean' }).notNull(),
   responseBody: text('response_body'),
   group: text('group'),
+  order: integer('order'),
 });
