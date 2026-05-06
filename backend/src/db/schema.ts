@@ -15,4 +15,5 @@ export const endpoints = sqliteTable('endpoints', {
   responseBody: text('response_body'),
   group: text('group'),
   order: integer('order'),
+  delayMs: integer('delay_ms'),
 });

@@ -15,7 +15,18 @@ import EndpointRepo from './repos/EndpointRepo';
                                   Run
 ******************************************************************************/
 
-const httpServer = http.createServer(app);
+let activeHttpsPort: number | null = null;
+
+const httpServer = http.createServer((req, res) => {
+  if (activeHttpsPort !== null) {
+    const host = (req.headers.host ?? 'localhost').replace(/:\d+$/, '');
+    const target = activeHttpsPort === 443 ? host : `${host}:${activeHttpsPort}`;
+    res.writeHead(301, { Location: `https://${target}${req.url ?? '/'}` });
+    res.end();
+    return;
+  }
+  app(req, res);
+});
 httpServer.listen(EnvVars.Port, () => {
   logger.info('Express server started on HTTP port: ' + EnvVars.Port);
   WsManager.initialize(EndpointRepo.getAll());
@@ -42,6 +53,8 @@ if (httpsPort && certDir) {
     );
     httpsServer.listen(httpsPort, () => {
       logger.info('Express server started on HTTPS port: ' + httpsPort);
+      activeHttpsPort = httpsPort;
+      logger.info('HTTP server now redirecting to HTTPS');
     });
     httpsServer.on('error', (err: Error) => logger.err(err.message));
   } else {

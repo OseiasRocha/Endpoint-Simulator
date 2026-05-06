@@ -11,8 +11,6 @@ import WsManager from './WebSocketManager';
                                 Websockets
 ******************************************************************************/
 
-let websockets : [WebSocket];
-
 /******************************************************************************
                                 Constants
 ******************************************************************************/
@@ -26,6 +24,7 @@ const TIMEOUT_MS = 5000;
 function transmitWeb(
   endpoint: IEndpoint,
   client: typeof http | typeof https,
+  redirectsLeft = 10,
 ): Promise<TransmitResult> {
   const start = Date.now();
   return new Promise((resolve) => {
@@ -42,11 +41,31 @@ function transmitWeb(
         },
       },
       (res) => {
+        const status = res.statusCode ?? 0;
+        const location = res.headers.location;
+
+        if (status >= 300 && status < 400 && location) {
+          res.resume();
+          if (redirectsLeft === 0) {
+            return resolve({ success: false, error: 'Too many redirects', latencyMs: Date.now() - start });
+          }
+          const url = new URL(location, `${client === https ? 'https' : 'http'}://${endpoint.host}:${endpoint.port}`);
+          const nextClient = url.protocol === 'https:' ? https : http;
+          const nextEndpoint: IEndpoint = {
+            ...endpoint,
+            host: url.hostname,
+            port: url.port ? parseInt(url.port) : (url.protocol === 'https:' ? 443 : 80),
+            path: url.pathname + url.search,
+          };
+          transmitWeb(nextEndpoint, nextClient, redirectsLeft - 1)
+            .then(result => resolve({ ...result, latencyMs: Date.now() - start }));
+          return;
+        }
+
         let data = '';
         res.on('data', (chunk: Buffer) => (data += chunk.toString()));
         res.on('end', () => {
-          const status = res.statusCode ?? 0;
-          const ok = status >= 200 && status < 400;
+          const ok = status >= 200 && status < 300;
           resolve({
             success: ok,
             statusCode: status || undefined,
@@ -179,7 +198,7 @@ function transmitWebSocket(endpoint: IEndpoint): Promise<TransmitResult> {
     }
 
     function onMessage(data: WebSocket.RawData) {
-      settle({ success: true, responseBody: data.toString(), latencyMs: Date.now() - start });
+      settle({ success: true, responseBody: (data as Buffer).toString(), latencyMs: Date.now() - start });
     }
 
     ws.once('message', onMessage);

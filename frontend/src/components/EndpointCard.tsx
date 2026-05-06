@@ -254,6 +254,12 @@ export default function EndpointCard({
                 }}
               />
             </Box>
+            {endpoint.delayMs != null && endpoint.delayMs > 0 && (
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.disabled', textTransform: 'uppercase', fontWeight: 600 }}>Play Delay</Typography>
+                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{endpoint.delayMs} ms</Typography>
+              </Box>
+            )}
           </Box>
 
           {endpoint.description && (

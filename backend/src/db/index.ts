@@ -51,6 +51,7 @@ function ensureSchema(dbFile: Database.Database): void {
     response_body: 'ALTER TABLE endpoints ADD COLUMN response_body TEXT;',
     group: 'ALTER TABLE endpoints ADD COLUMN "group" TEXT;',
     order: 'ALTER TABLE endpoints ADD COLUMN "order" INTEGER;',
+    delay_ms: 'ALTER TABLE endpoints ADD COLUMN delay_ms INTEGER;',
   };
 
   for (const [column, statement] of Object.entries(addColumnStatements)) {

@@ -30,6 +30,7 @@ export const EndpointSchema = z
     responseBody: nullToUndefined(z.string()),
     group: nullToUndefined(z.string()),
     order: z.number().int().optional(),
+    delayMs: z.number().int().nonnegative().optional(),
   })
   .refine(
     (data) => {

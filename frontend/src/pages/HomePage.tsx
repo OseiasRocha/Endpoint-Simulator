@@ -230,6 +230,9 @@ export default function HomePage() {
 
     for (const ep of groupEps) {
       if (!ep.id) continue;
+      if (ep.delayMs && ep.delayMs > 0) {
+        await new Promise(resolve => setTimeout(resolve, ep.delayMs));
+      }
       setPlayResults(prev => new Map(prev).set(ep.id!, 'loading'));
       try {
         const result = await endpointsApi.send(ep.id);

@@ -38,7 +38,7 @@ function add(data: EndpointInput): IEndpoint {
 
 function reorder(orderedIds: number[]): void {
   for (let i = 0; i < orderedIds.length; i++) {
-    db.update(endpoints).set({ order: i }).where(eq(endpoints.id, orderedIds[i]!)).run();
+    db.update(endpoints).set({ order: i }).where(eq(endpoints.id, orderedIds[i])).run();
   }
 }
 
@@ -107,6 +107,7 @@ function toRow(data: EndpointInput, fallbackExternalId?: string) {
     responseBody: data.responseBody ?? null,
     group: data.group ?? null,
     order: data.order ?? null,
+    delayMs: data.delayMs ?? null,
   };
 }
 

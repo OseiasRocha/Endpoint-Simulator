@@ -33,6 +33,7 @@ const EMPTY: Omit<SimulatorEndpoint, 'id'> = {
   hasResponse: false,
   responseBody: '',
   group: undefined,
+  delayMs: 0,
 };
 
 interface Props {
@@ -125,22 +126,36 @@ export default function AddEditDialog({ open, initial, groups, onClose, onSave }
             rows={2}
           />
 
-          <Autocomplete
-            freeSolo
-            options={groups}
-            value={form.group ?? ''}
-            onChange={(_, value) => set('group', value ?? undefined)}
-            onInputChange={(_, value) => set('group', value || undefined)}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Group"
-                size="small"
-                fullWidth
-                placeholder="Type to create or select a group"
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+            <Box sx={{ flex: 1 }}>
+              <Autocomplete
+                freeSolo
+                options={groups}
+                value={form.group ?? ''}
+                onChange={(_, value) => set('group', value ?? undefined)}
+                onInputChange={(_, value) => set('group', value || undefined)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Group"
+                    size="small"
+                    fullWidth
+                    placeholder="Type to create or select a group"
+                  />
+                )}
               />
-            )}
-          />
+            </Box>
+            <TextField
+              label="Play delay (ms)"
+              type="number"
+              value={form.delayMs ?? ''}
+              onChange={e => set('delayMs', e.target.value === '' ? undefined : Math.max(0, Math.floor(Number(e.target.value))))}
+              size="small"
+              sx={{ width: 160 }}
+              inputProps={{ min: 0, step: 100 }}
+              helperText="Wait before sending"
+            />
+          </Box>
 
           <Divider>
             <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'uppercase', fontWeight: 600 }}>
