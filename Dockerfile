@@ -1,4 +1,4 @@
-FROM dhi.io/node:25-alpine3.23-dev AS builder
+FROM dhi.io/node:24-alpine3.23-dev AS builder
 
 WORKDIR /app
 
@@ -25,7 +25,7 @@ RUN cp -r frontend/dist/. backend/dist/public/ \
 
 RUN npm ci --omit=dev
 
-FROM dhi.io/node:25-alpine3.23 AS runner
+FROM dhi.io/node:24-alpine3.23 AS runner
 
 WORKDIR /app
 
