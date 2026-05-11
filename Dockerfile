@@ -1,4 +1,4 @@
-FROM dhi.io/node:24-alpine3.23-dev AS builder
+FROM node:24-alpine3.23 AS builder
 
 WORKDIR /app
 
@@ -25,7 +25,7 @@ RUN cp -r frontend/dist/. backend/dist/public/ \
 
 RUN npm ci --omit=dev
 
-FROM dhi.io/node:24-alpine3.23 AS runner
+FROM node:24-alpine3.23 AS runner
 
 WORKDIR /app
 
@@ -36,9 +36,6 @@ COPY --from=builder /app/backend/dist ./backend/dist
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/backend/package.json ./backend/
 COPY --chown=1000:1000 --from=builder /app/data ./data
-
-VOLUME ["/app/data"]
-VOLUME ["/app/certs"]
 
 EXPOSE 8080
 EXPOSE 8443
