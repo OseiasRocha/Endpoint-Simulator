@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTheme } from '@mui/material/styles';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -23,7 +23,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import type { SimulatorEndpoint, TransmitResult, Protocol, HttpMethod } from '../types/endpoint';
 import { endpointsApi } from '../api/endpoints';
-import { diffJson, type DiffResult } from '../utils/jsonDiff';
+import { diffJson } from '../utils/jsonDiff';
+import type { DiffResult } from '../utils/jsonDiff';
 import ProtocolBadge from './ProtocolBadge';
 import JsonDisplay from './JsonDisplay';
 import JsonDiffDisplay from './JsonDiffDisplay';
@@ -71,7 +72,6 @@ export default function EndpointCard({
   const [expanded, setExpanded] = useState(false);
   const [sending, setSending] = useState(false);
   const [transmitResult, setTransmitResult] = useState<TransmitResult | null>(null);
-  const [diffResult, setDiffResult] = useState<DiffResult | null>(null);
 
   const hasUrl = endpoint.protocol === 'HTTP' || endpoint.protocol === 'HTTPS'
     || endpoint.protocol === 'WS' || endpoint.protocol === 'WSS';
@@ -87,6 +87,13 @@ export default function EndpointCard({
   const displayResult = externalResult !== undefined ? externalResult : transmitResult;
   const displaySending = externalSending || sending;
 
+  const diffResult = useMemo<DiffResult | null>(() => {
+    if (endpoint.hasResponse && endpoint.responseBody && displayResult?.responseBody) {
+      return diffJson(endpoint.responseBody, displayResult.responseBody);
+    }
+    return null;
+  }, [endpoint.hasResponse, endpoint.responseBody, displayResult]);
+
   useEffect(() => {
     if (externalResult != null) setExpanded(true);
   }, [externalResult]);
@@ -94,13 +101,9 @@ export default function EndpointCard({
   async function handleSend() {
     setSending(true);
     setTransmitResult(null);
-    setDiffResult(null);
     try {
       const result = await endpointsApi.send(endpoint.id!);
       setTransmitResult(result);
-      if (endpoint.hasResponse && endpoint.responseBody && result.responseBody) {
-        setDiffResult(diffJson(endpoint.responseBody, result.responseBody));
-      }
       setExpanded(true);
     } catch (err) {
       setTransmitResult({ success: false, error: String(err), latencyMs: 0 });
