@@ -240,8 +240,9 @@ export default function AddEditDialog({ open, initial, groups, onClose, onSave }
             helperText={errors.requestBody || (jsonBodies ? 'Optional JSON payload to send' : 'Optional plain-text payload to send')}
             size="small"
             fullWidth
-            multiline
-            rows={5}
+	    multiline
+            minRows={5}
+            maxRows={20}
             inputProps={{ style: { fontFamily: '"JetBrains Mono", monospace', fontSize: '0.8rem' } }}
           />
 
@@ -265,12 +266,12 @@ export default function AddEditDialog({ open, initial, groups, onClose, onSave }
               onChange={e => set('responseBody', e.target.value)}
               error={!!errors.responseBody}
               helperText={errors.responseBody || (jsonBodies
-                ? 'Optional expected JSON payload used for comparison'
+                ? 'Optional expected JSON — use "*" for any value, "$regex:PATTERN" for regex'
                 : 'Optional expected plain-text payload used for comparison')}
               size="small"
               fullWidth
               multiline
-              rows={5}
+              minRows={5}
               inputProps={{ style: { fontFamily: '"JetBrains Mono", monospace', fontSize: '0.8rem' } }}
             />
           )}
